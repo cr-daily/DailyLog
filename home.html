@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - หน้าหลัก</title>
+    
+    <!-- เชื่อมโยงไฟล์ Manifest สำหรับ PWA (ติดตั้งแอป) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#4c0519',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8">
+
+    <!-- Container หลักแบบไร้กรอบอึดอัด ใช้พื้นที่คุ้มค่า -->
+    <div class="w-full max-w-4xl bg-white/90 backdrop-blur-md shadow-2xl rounded-3xl p-6 md:p-8 border border-brand-200">
+        
+        <!-- Header แสดงข้อมูลผู้ใช้และการออกจากระบบ -->
+        <div class="bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900 text-white rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+            <div class="flex items-center space-x-4">
+                <img id="user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" alt="Avatar" class="w-16 h-16 rounded-full object-cover border-2 border-white/80 shadow-md">
+                <div>
+                    <h2 id="user-name" class="text-xl font-bold">กำลังโหลด...</h2>
+                    <p class="text-xs text-brand-200 mt-0.5">ID: <span id="user-custom-id">--------</span> | Role: <span id="user-role" class="uppercase font-bold">User</span></p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-right">
+                    <p class="text-[10px] text-brand-200">ยอดเงินในบัญชีหลัก</p>
+                    <p id="user-silver" class="text-lg font-extrabold">0 Silver</p>
+                </div>
+                <button onclick="handleLogout()" class="bg-red-500/80 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-md">ออกจากระบบ</button>
+            </div>
+        </div>
+
+        <!-- หัวข้อหมวดหมู่แอป -->
+        <div class="mb-6 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-brand-900 flex items-center space-x-2">
+                <span>📱 เมนูแอปพลิเคชัน (Launcher)</span>
+            </h3>
+            <span class="text-xs text-gray-500">เลือกแอปที่ต้องการใช้งาน</span>
+        </div>
+
+        <!-- ตารางไอคอนแอป (Grid Launcher) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            
+            <!-- Profile -->
+            <div onclick="location.href='profile.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">👤</div>
+                <h4 class="font-bold text-sm text-brand-900">Profile</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">ข้อมูลผู้เล่น & หลอดพลัง</p>
+            </div>
+
+            <!-- Bank -->
+            <div onclick="location.href='bank.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">💳</div>
+                <h4 class="font-bold text-sm text-brand-900">Bank</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">ธนาคาร & โอนเงิน</p>
+            </div>
+
+            <!-- Store -->
+            <div onclick="location.href='store.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">🛍️</div>
+                <h4 class="font-bold text-sm text-brand-900">Store</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">ร้านค้าทั่วไป & ผู้ติดตาม</p>
+            </div>
+
+            <!-- Inventory -->
+            <div onclick="location.href='inventory.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">🎒</div>
+                <h4 class="font-bold text-sm text-brand-900">Inventory</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">คลังเก็บของ & ทานอาหาร</p>
+            </div>
+
+            <!-- S-Link -->
+            <div onclick="location.href='s-link.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">💬</div>
+                <h4 class="font-bold text-sm text-brand-900">S-Link</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">โซเชียลมีเดีย & แชท</p>
+            </div>
+
+            <!-- Learnify -->
+            <div onclick="location.href='learnify.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">📚</div>
+                <h4 class="font-bold text-sm text-brand-900">Learnify</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">ศูนย์พัฒนาสกิล & มหาวิทยาลัย</p>
+            </div>
+
+            <!-- Skill -->
+            <div onclick="location.href='skill.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">⭐</div>
+                <h4 class="font-bold text-sm text-brand-900">Skill</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">ศูนย์รวมทักษะ & เลเวล</p>
+            </div>
+
+            <!-- Career -->
+            <div onclick="location.href='career.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">💼</div>
+                <h4 class="font-bold text-sm text-brand-900">Career</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">งานหลัก & งานเสริม</p>
+            </div>
+
+            <!-- Estate -->
+            <div onclick="location.href='estate.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">🏠</div>
+                <h4 class="font-bold text-sm text-brand-900">Estate</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">บ้าน คอนโด อพาร์ตเมนต์</p>
+            </div>
+
+            <!-- BillPay -->
+            <div onclick="location.href='billpay.html'" class="bg-white hover:bg-brand-50 p-5 rounded-2xl shadow-md border border-brand-100 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1">
+                <div class="text-3xl mb-2">📄</div>
+                <h4 class="font-bold text-sm text-brand-900">BillPay</h4>
+                <p class="text-[10px] text-gray-500 mt-0.5">ชำระบิลค่าน้ำค่าไฟ</p>
+            </div>
+
+            <!-- Admin Panel (ซ่อนไว้สำหรับผู้เล่นทั่วไป จะแสดงเฉพาะ Role Admin เท่านั้น) -->
+            <div id="admin-app-card" onclick="location.href='admin.html'" class="bg-brand-900 hover:bg-brand-800 text-white p-5 rounded-2xl shadow-lg border border-brand-700 flex flex-col items-center text-center cursor-pointer transition transform hover:-translate-y-1 hidden">
+                <div class="text-3xl mb-2">⚙️</div>
+                <h4 class="font-bold text-sm">Admin Control</h4>
+                <p class="text-[10px] text-brand-200 mt-0.5">ระบบจัดการหลังบ้าน</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Cute Popup Modal System (ป๊อปอัพน่ารักเท่ๆ) -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <!-- 🔗 นำเข้าไฟล์ตั้งค่าภายนอก -->
+    <script src="supabase-config.js"></script>
+
+    <!-- Script ควบคุมหน้า Home -->
+    <script>
+        // ฟังก์ชันแสดงป๊อปอัพ
+        function showModal(title, message, icon = '✨') {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                box.classList.remove('scale-95', 'opacity-0');
+                box.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100');
+            box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        // โหลดข้อมูลผู้ใช้จาก Supabase เมื่อเข้าหน้าเว็บ
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (typeof supabaseClient === 'undefined') {
+                showModal("ข้อผิดพลาด", "ไม่สามารถเชื่อมต่อกับ Supabase ได้", "❌");
+                return;
+            }
+
+            // ตรวจสอบ Session การเข้าสู่ระบบ
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+            if (!session) {
+                // ถ้ายังไม่ได้ล็อกอิน ให้เด้งกลับไปหน้า index.html ทันที
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const userId = session.user.id;
+
+            // ดึงข้อมูล Profile จากตาราง profiles
+            const { data: profile, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (profile) {
+                document.getElementById('user-name').innerText = profile.name;
+                document.getElementById('user-custom-id').innerText = profile.custom_id;
+                document.getElementById('user-role').innerText = profile.role;
+                if (profile.avatar) {
+                    document.getElementById('user-avatar').src = profile.avatar;
+                }
+
+                // หากเป็น Admin ให้แสดงปุ่ม Admin Control Panel
+                if (profile.role === 'admin') {
+                    document.getElementById('admin-app-card').classList.remove('hidden');
+                }
+            }
+
+            // ดึงข้อมูลยอดเงิน Silver จากตาราง bank_accounts (บัญชีหลัก)
+            const { data: bankData, error: bankError } = await supabaseClient
+                .from('bank_accounts')
+                .select('silver')
+                .eq('user_id', userId)
+                .limit(1);
+
+            if (bankData && bankData.length > 0) {
+                document.getElementById('user-silver').innerText = bankData[0].silver.toLocaleString() + ' Silver';
+            } else {
+                document.getElementById('user-silver').innerText = '0 Silver';
+            }
+        });
+
+        // ฟังก์ชันออกจากระบบ
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            showModal("ออกจากระบบสำเร็จ", "กำลังพากลับสู่หน้าหลัก...", "👋");
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
