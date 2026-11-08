@@ -1,0 +1,95 @@
+<script>
+// ==========================================
+// 1. ตั้งค่า PWA (โลโก้ + ซ่อนแถบเบราว์เซอร์)
+// ==========================================
+(function setupPWA() {
+    // 🎨 ใส่ URL ลิงก์รูปโลโก้ของคุณที่ต้องการใช้เป็นไอคอนแอปตรงนี้ (เช่น รูปจาก Cloudinary)
+    const APP_ICON_URL = 'https://res.cloudinary.com/dp6k1rwj/image/upload/v1/your-logo.png'; 
+    const APP_NAME = 'Daily Log';
+    const APP_SHORT_NAME = 'DailyLog';
+
+    // สร้างข้อมูล Manifest แบบ Data URL เพื่อให้อยู่ในโค้ดเดียว
+    const manifestData = {
+        name: APP_NAME,
+        short_name: APP_SHORT_NAME,
+        start_url: "./",
+        display: "standalone", // 👈 คำสั่งนี้จะซ่อน Header/แถบ URL เบราว์เซอร์ทั้งหมดเมื่อเปิดผ่านแอปที่ติดตั้ง
+        background_color: "#fff5f5",
+        theme_color: "#e11d48",
+        icons: [
+            {
+                src: APP_ICON_URL,
+                sizes: "192x192",
+                type: "image/png",
+                purpose: "any maskable"
+            },
+            {
+                src: APP_ICON_URL,
+                sizes: "512x512",
+                type: "image/png",
+                purpose: "any maskable"
+            }
+        ]
+    };
+
+    // ฉีด Manifest เข้าไปใน <head>
+    const stringManifest = JSON.stringify(manifestData);
+    const blob = new Blob([stringManifest], {type: 'application/json'});
+    const manifestURL = URL.createObjectURL(blob);
+    
+    let manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = manifestURL;
+    document.head.appendChild(manifestLink);
+
+    // ฉีด Apple Touch Icon สำหรับ iOS/iPhone
+    let appleIcon = document.createElement('link');
+    appleIcon.rel = 'apple-touch-icon';
+    appleIcon.href = APP_ICON_URL;
+    document.head.appendChild(appleIcon);
+
+    // ฉีด Meta Tag ตั้งค่าหน้าจอสำหรับ iOS
+    let metaWebApp = document.createElement('meta');
+    metaWebApp.name = 'apple-mobile-web-app-capable';
+    metaWebApp.content = 'yes';
+    document.head.appendChild(metaWebApp);
+
+    let metaStatus = document.createElement('meta');
+    metaStatus.name = 'apple-mobile-web-app-status-bar-style';
+    metaStatus.content = 'black-translucent';
+    document.head.appendChild(metaStatus);
+})();
+
+// ==========================================
+// 2. คำสั่งสร้างปุ่ม "ติดตั้งลงเครื่อง"
+// ==========================================
+let deferredPrompt;
+
+// ดักจับ Event เมื่อเบราว์เซอร์พร้อมให้ติดตั้งแอป
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // แสดงปุ่มติดตั้ง (ถ้ามีปุ่มบนหน้าเว็บ)
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) {
+        installBtn.style.display = 'block';
+    }
+});
+
+// ฟังก์ชันสำหรับเรียกใช้เมื่อกดปุ่ม "ติดตั้งแอป"
+function installDailyLogApp() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('ผู้ใช้กดติดตั้งแอปเรียบร้อยแล้ว');
+            }
+            deferredPrompt = null;
+        });
+    } else {
+        // กรณีเป็น iOS / Safari หรือเบราว์เซอร์ที่ไม่ซัพพอร์ตปุ่มกดตรงๆ
+        alert("วิธีติดตั้งลงเครื่อง:\n- บน iOS (Safari): กดปุ่ม Share ➔ เลือก 'Add to Home Screen' (เพิ่มไปยังหน้าจอโฮม)\n- บน Android (Chrome): กดเมนู 3 จุด ➔ เลือก 'Install app' หรือ 'Add to Home Screen'");
+    }
+}
+</script>
