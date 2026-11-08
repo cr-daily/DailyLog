@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - เข้าสู่ระบบ / สมัครสมาชิก</title>
+    
+    <!-- เชื่อมโยงไฟล์ Manifest สำหรับ PWA (ติดตั้งแอป) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#4c0519',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Container หลักแบบไร้กรอบอึดอัด ใช้พื้นที่คุ้มค่า -->
+    <div class="w-full max-w-md bg-white/80 backdrop-blur-md shadow-2xl rounded-3xl p-8 border border-brand-200">
+        
+        <!-- Header โลโก้แอป -->
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-gradient-to-tr from-brand-600 to-brand-400 rounded-2xl shadow-lg flex items-center justify-center text-white text-3xl font-bold mx-auto mb-3 transform hover:rotate-6 transition duration-300">DL</div>
+            <h1 class="text-3xl font-extrabold text-brand-900 tracking-tight">Daily Log</h1>
+        </div>
+
+        <!-- Tab Switcher (ปุ่มเข้าสู่ระบบ / สมัครสมาชิก ทำงานสอดคล้องกัน) -->
+        <div class="flex bg-brand-100/60 p-1.5 rounded-2xl mb-6">
+            <button type="button" id="btn-tab-login" onclick="switchTab('login')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 bg-brand-600 text-white shadow-md">เข้าสู่ระบบ</button>
+            <button type="button" id="btn-tab-register" onclick="switchTab('register')" class="flex-1 py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition-all duration-200">สมัครสมาชิก</button>
+        </div>
+
+        <!-- ฟอร์มเข้าสู่ระบบ / สมัครสมาชิก -->
+        <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+            
+            <!-- ช่องกรอกชื่อ (แสดงเฉพาะตอนสมัครสมาชิก) -->
+            <div id="field-name" class="hidden transition-all duration-300">
+                <label class="block text-xs font-semibold text-brand-800 mb-1">ชื่อ (Name)</label>
+                <input type="text" id="input-name" class="w-full px-4 py-3 rounded-xl border border-brand-200 bg-white focus:outline-none focus:border-brand-500 text-sm shadow-sm">
+            </div>
+
+            <!-- ช่องกรอกชื่อเต็ม (แสดงเฉพาะตอนสมัครสมาชิก) -->
+            <div id="field-fullname" class="hidden transition-all duration-300">
+                <label class="block text-xs font-semibold text-brand-800 mb-1">ชื่อเต็ม (Full Name)</label>
+                <input type="text" id="input-fullname" class="w-full px-4 py-3 rounded-xl border border-brand-200 bg-white focus:outline-none focus:border-brand-500 text-sm shadow-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-brand-800 mb-1">อีเมล (Email)</label>
+                <input type="email" id="input-email" required class="w-full px-4 py-3 rounded-xl border border-brand-200 bg-white focus:outline-none focus:border-brand-500 text-sm shadow-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-brand-800 mb-1">รหัสผ่าน (Password)</label>
+                <input type="password" id="input-password" required class="w-full px-4 py-3 rounded-xl border border-brand-200 bg-white focus:outline-none focus:border-brand-500 text-sm shadow-sm">
+            </div>
+
+            <button type="submit" id="btn-submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-500 text-white py-3.5 rounded-xl font-bold shadow-lg hover:from-brand-700 hover:to-brand-600 transition-all transform active:scale-95 text-sm mt-2">
+                เข้าสู่ระบบ
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <p id="auth-switch-text" class="text-xs text-gray-500">
+                ยังไม่มีบัญชีใช่ไหม? <span onclick="switchTab('register')" class="text-brand-600 font-bold cursor-pointer hover:underline">สมัครสมาชิกที่นี่</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Cute Popup Modal System -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <!-- 🔗 นำเข้าไฟล์ตั้งค่าภายนอก -->
+    <script src="supabase-config.js"></script>
+    <script src="cloudinary-config.js"></script>
+
+    <!-- Script ควบคุมการทำงานหน้า Index -->
+    <script>
+        let currentMode = 'login';
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (typeof supabaseClient !== 'undefined') {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session) {
+                        window.location.href = 'home.html';
+                    }
+                } else {
+                    console.error("Supabase client not loaded!");
+                }
+            } catch (err) {
+                console.error("Init Error:", err);
+            }
+        });
+
+        function switchTab(mode) {
+            currentMode = mode;
+            const btnLogin = document.getElementById('btn-tab-login');
+            const btnRegister = document.getElementById('btn-tab-register');
+            const fieldName = document.getElementById('field-name');
+            const fieldFullname = document.getElementById('field-fullname');
+            const btnSubmit = document.getElementById('btn-submit');
+            const switchText = document.getElementById('auth-switch-text');
+
+            if (mode === 'login') {
+                btnLogin.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 bg-brand-600 text-white shadow-md";
+                btnRegister.className = "flex-1 py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition-all duration-200";
+                fieldName.classList.add('hidden');
+                fieldFullname.classList.add('hidden');
+                btnSubmit.innerText = "เข้าสู่ระบบ";
+                switchText.innerHTML = `ยังไม่มีบัญชีใช่ไหม? <span onclick="switchTab('register')" class="text-brand-600 font-bold cursor-pointer hover:underline">สมัครสมาชิกที่นี่</span>`;
+            } else {
+                btnRegister.className = "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 bg-brand-600 text-white shadow-md";
+                btnLogin.className = "flex-1 py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition-all duration-200";
+                fieldName.classList.remove('hidden');
+                fieldFullname.classList.remove('hidden');
+                btnSubmit.innerText = "สมัครสมาชิก";
+                switchText.innerHTML = `มีบัญชีอยู่แล้วใช่ไหม? <span onclick="switchTab('login')" class="text-brand-600 font-bold cursor-pointer hover:underline">เข้าสู่ระบบที่นี่</span>`;
+            }
+        }
+
+        function showModal(title, message, icon = '✨') {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                box.classList.remove('scale-95', 'opacity-0');
+                box.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100');
+            box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('input-email').value.trim();
+            const password = document.getElementById('input-password').value.trim();
+            
+            if (typeof supabaseClient === 'undefined') {
+                showModal("ข้อผิดพลาด", "ไม่พบการตั้งค่า Supabase Config", "❌");
+                return;
+            }
+
+            const isAdmin = (email === 'adminzelisanya@gmail.com' && password === 'adminzeli');
+
+            try {
+                if (currentMode === 'register') {
+                    const name = document.getElementById('input-name').value.trim();
+                    const fullname = document.getElementById('input-fullname').value.trim();
+
+                    if (!name || !fullname) {
+                        showModal("กรอกข้อมูลไม่ครบ", "กรุณากรอกชื่อและชื่อเต็มให้เรียบร้อยครับ", "⚠️");
+                        return;
+                    }
+
+                    showModal("กำลังสมัครสมาชิก...", "โปรดรอสักครู่ ระบบกำลังสร้างบัญชีให้คุณ", "⏳");
+
+                    // 1. สมัครสมาชิกผ่าน Supabase Auth
+                    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                        email: email,
+                        password: password
+                    });
+
+                    if (authError) {
+                        showModal("สมัครสมาชิกไม่สำเร็จ", authError.message, "❌");
+                        return;
+                    }
+
+                    if (authData.user) {
+                        const userId = authData.user.id;
+                        const customId = Math.floor(10000000 + Math.random() * 90000000).toString();
+                        const role = isAdmin ? 'admin' : 'user';
+                        const avatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+
+                        // 2. บันทึกข้อมูลลงตาราง profiles
+                        const { error: profileError } = await supabaseClient.from('profiles').insert([{
+                            id: userId,
+                            custom_id: customId,
+                            name: name,
+                            fullname: fullname,
+                            email: email,
+                            role: role,
+                            avatar: avatar,
+                            energy: 100,
+                            max_energy: 100,
+                            food: 100,
+                            max_food: 100
+                        }]);
+
+                        if (profileError) {
+                            showModal("ข้อผิดพลาด Profile", profileError.message, "❌");
+                            return;
+                        }
+
+                        // 3. สร้างบัญชีธนาคารหลักอัตโนมัติ
+                        const accountNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+                        const { error: bankError } = await supabaseClient.from('bank_accounts').insert([{
+                            user_id: userId,
+                            account_name: 'บัญชีหลัก',
+                            account_number: accountNumber,
+                            silver: 1500.00
+                        }]);
+
+                        if (bankError) {
+                            showModal("ข้อผิดพลาด Bank", bankError.message, "❌");
+                            return;
+                        }
+
+                        showModal("สมัครสมาชิกสำเร็จ!", isAdmin ? "ยินดีต้อนรับท่านแอดมินเข้าสู่ระบบ" : "ลงทะเบียนบัญชีผู้เล่นเรียบร้อยแล้ว!", "🎉");
+                        setTimeout(() => {
+                            window.location.href = 'home.html';
+                        }, 1500);
+                    }
+
+                } else {
+                    // โหมดเข้าสู่ระบบปกติ
+                    showModal("กำลังเข้าสู่ระบบ...", "โปรดรอสักครู่...", "⏳");
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+
+                    if (error) {
+                        showModal("เข้าสู่ระบบไม่สำเร็จ", error.message, "❌");
+                        return;
+                    }
+
+                    showModal("ยินดีต้อนรับกลับมา!", "เข้าสู่ระบบสำเร็จ กำลังพาไปยังหน้าหลัก...", "✨");
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 1200);
+                }
+            } catch (err) {
+                showModal("เกิดข้อผิดพลาดระบบ", err.message || "Unknown error occurred", "❌");
+            }
+        }
+    </script>
+</body>
+</html>
