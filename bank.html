@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - ธนาคารส่วนตัว (Bank)</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-2xl space-y-6">
+        
+        <!-- Header Nav -->
+        <div class="border-b border-brand-200 pb-4 mb-2">
+            <button onclick="location.href='home.html'" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition mb-2">
+                <span>◀ กลับหน้าหลัก</span>
+            </button>
+            <h1 class="text-xl font-extrabold text-brand-900">💳 ธนาคารส่วนตัว (Bank)</h1>
+        </div>
+
+        <!-- Section 1: บัญชีธนาคาร -->
+        <div class="space-y-3">
+            <div class="flex justify-between items-center px-1">
+                <h3 class="text-xs font-bold text-brand-800">บัญชีที่ใช้งานอยู่ (<span id="acc-count">0</span>/3)</h3>
+                <div class="flex items-center space-x-2">
+                    <button id="btn-add-acc" onclick="createNewAccount()" class="bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-sm">
+                        + สร้างบัญชีใหม่
+                    </button>
+                </div>
+            </div>
+
+            <!-- แสดงการ์ดบัญชีปัจจุบัน -->
+            <div id="active-account-card" class="space-y-3">
+                <!-- โหลดการ์ดบัญชีจาก JS -->
+            </div>
+        </div>
+
+        <!-- Section 2: Tab Switcher (โอนเงิน / รายชื่อโปรด) -->
+        <div class="flex bg-brand-100/80 p-1.5 rounded-2xl">
+            <button id="tab-btn-transfer" onclick="switchBankTab('transfer')" class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md transition">โอนเงิน (Transfer)</button>
+            <button id="tab-btn-contacts" onclick="switchBankTab('contacts')" class="flex-1 py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition">รายชื่อโปรด (Contacts)</button>
+        </div>
+
+        <!-- View 1: ฟอร์มโอนเงิน -->
+        <div id="view-transfer" class="space-y-4">
+            <div class="bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-md border border-brand-200 space-y-4">
+                <div>
+                    <label class="block text-[11px] font-semibold text-brand-800 mb-1">เลขบัญชีผู้รับเงิน (10 หลัก)</label>
+                    <input type="text" id="transfer-rec-acc" maxlength="10" placeholder="กรอกเลขบัญชี 10 หลัก" class="w-full px-3 py-2.5 rounded-xl border border-brand-200 text-xs bg-white focus:outline-none focus:border-brand-500 shadow-inner">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-brand-800 mb-1">จำนวนเงิน (Silver)</label>
+                    <input type="number" id="transfer-amount" placeholder="0" class="w-full px-3 py-2.5 rounded-xl border border-brand-200 text-xs bg-white focus:outline-none focus:border-brand-500 shadow-inner">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-brand-800 mb-1">หมายเหตุ (ไม่ระบูก็ได้)</label>
+                    <input type="text" id="transfer-note" placeholder="เช่น ค่าอาหาร, ค่าขนม" class="w-full px-3 py-2.5 rounded-xl border border-brand-200 text-xs bg-white focus:outline-none focus:border-brand-500 shadow-inner">
+                </div>
+                <button onclick="executeTransfer()" class="w-full bg-gradient-to-r from-brand-600 to-brand-500 text-white py-3 rounded-xl font-bold shadow-md hover:from-brand-700 hover:to-brand-600 transition text-xs mt-2">
+                    ยืนยันการโอนเงิน
+                </button>
+            </div>
+        </div>
+
+        <!-- View 2: รายชื่อบันทึกโปรด -->
+        <div id="view-contacts" class="hidden space-y-4">
+            <div class="bg-white/90 backdrop-blur-md p-5 rounded-3xl shadow-md border border-brand-200 space-y-3">
+                <h4 class="text-xs font-bold text-brand-900">เพิ่มรายชื่อใหม่</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="text" id="contact-name-input" placeholder="ชื่อเรียก (จำง่าย)" class="px-3 py-2.5 rounded-xl border border-brand-200 text-xs bg-white shadow-inner">
+                    <input type="text" id="contact-acc-input" maxlength="10" placeholder="เลขบัญชี 10 หลัก" class="px-3 py-2.5 rounded-xl border border-brand-200 text-xs bg-white shadow-inner">
+                </div>
+                <button onclick="addContact()" class="w-full bg-brand-600 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-brand-700 transition shadow-sm">
+                    + บันทึกรายชื่อ
+                </button>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="text-xs font-bold text-brand-800 px-1">รายชื่อที่บันทึกไว้</h4>
+                <div id="contacts-list" class="space-y-2">
+                    <!-- โหลดรายชื่อจาก JS -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal Popup / สลิปโอนเงิน -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <div id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</div>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <!-- Modal เลือกบัญชีแบบสวยหรูเข้าธีม -->
+    <div id="account-switcher-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="switcher-box">
+            <div class="w-14 h-14 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl shadow-inner">💳</div>
+            <h3 class="text-base font-bold text-brand-900 mb-1">สลับบัญชีธนาคาร</h3>
+            <p class="text-xs text-gray-500 mb-4">เลือกบัญชีที่คุณต้องการใช้งานในขณะนี้</p>
+            <div id="switcher-accounts-list" class="space-y-2.5 mb-5 text-left max-h-60 overflow-y-auto pr-1">
+                <!-- รายการบัญชี -->
+            </div>
+            <button onclick="closeAccountSwitcher()" class="bg-gray-200 text-gray-700 px-6 py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-300 transition w-full">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        let currentUserId = null;
+        let myAccounts = [];
+        let selectedAccNo = null;
+
+        function showModal(title, messageHtml, icon = '✨') {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerHTML = messageHtml;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        function openAccountSwitcher() {
+            const modal = document.getElementById('account-switcher-modal');
+            const box = document.getElementById('switcher-box');
+            renderSwitcherList();
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeAccountSwitcher() {
+            const modal = document.getElementById('account-switcher-modal');
+            const box = document.getElementById('switcher-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+            currentUserId = session.user.id;
+
+            await loadAccounts();
+            await loadContacts();
+        });
+
+        async function loadAccounts() {
+            const { data } = await supabaseClient.from('bank_accounts').select('*').eq('user_id', currentUserId).order('created_at', { ascending: true });
+            myAccounts = data || [];
+
+            document.getElementById('acc-count').innerText = myAccounts.length;
+            const btnAdd = document.getElementById('btn-add-acc');
+            if (myAccounts.length >= 3) btnAdd.classList.add('hidden');
+            else btnAdd.classList.remove('hidden');
+
+            if (myAccounts.length > 0 && !selectedAccNo) {
+                selectedAccNo = myAccounts[0].account_number;
+            } else if (myAccounts.length > 0 && !myAccounts.some(a => a.account_number === selectedAccNo)) {
+                selectedAccNo = myAccounts[0].account_number;
+            }
+
+            renderActiveAccountUI();
+        }
+
+        // แสดงการ์ดบัญชีปัจจุบัน พร้อมปุ่มเปิดเมนูสลับบัญชีแบบสวยงามเข้าธีม
+        function renderActiveAccountUI() {
+            const container = document.getElementById('active-account-card');
+            container.innerHTML = '';
+
+            if (myAccounts.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">ยังไม่มีบัญชีธนาคาร</p>';
+                return;
+            }
+
+            const currentAcc = myAccounts.find(a => a.account_number === selectedAccNo) || myAccounts[0];
+
+            let switcherButtonHtml = '';
+            if (myAccounts.length > 1) {
+                switcherButtonHtml = `
+                    <div class="mt-3 pt-3 border-t border-white/20 flex items-center justify-between text-xs">
+                        <span class="opacity-90">บัญชีทั้งหมด (${myAccounts.length})</span>
+                        <button onclick="openAccountSwitcher()" class="bg-white text-brand-900 font-bold px-3 py-1.5 rounded-xl shadow-md hover:bg-brand-50 transition flex items-center space-x-1 text-[11px]">
+                            <span>🔄 สลับบัญชีใช้งาน</span>
+                        </button>
+                    </div>
+                `;
+            }
+
+            const card = document.createElement('div');
+            card.className = "p-5 rounded-3xl bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-xl border border-brand-500 relative overflow-hidden";
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center space-x-2">
+                        <input type="text" value="${currentAcc.account_name}" onchange="renameAccount('${currentAcc.id}', this.value)" class="bg-transparent font-bold text-sm focus:outline-none border-b border-dashed border-white/70 max-w-[160px]" title="คลิกเพื่อเปลี่ยนชื่อบัญชี">
+                        <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">ใช้งานอยู่</span>
+                    </div>
+                    ${myAccounts.length > 1 ? `<button onclick="deleteAccount('${currentAcc.id}')" class="text-[10px] bg-red-500/30 text-white hover:bg-red-600 px-2.5 py-1 rounded-xl transition font-semibold">ลบบัญชีนี้</button>` : ''}
+                </div>
+                <p class="text-[11px] opacity-80 tracking-wider">เลขบัญชี: ${currentAcc.account_number}</p>
+                <p class="text-2xl font-extrabold mt-3">${Number(currentAcc.silver).toLocaleString()} <span class="text-xs font-normal">Silver</span></p>
+                ${switcherButtonHtml}
+            `;
+            container.appendChild(card);
+        }
+
+        // เรนเดอร์รายชื่อบัญชีในหน้าต่างป๊อปอัพสลับบัญชีแบบสวยงาม
+        function renderSwitcherList() {
+            const listContainer = document.getElementById('switcher-accounts-list');
+            listContainer.innerHTML = '';
+
+            myAccounts.forEach(acc => {
+                const isSelected = acc.account_number === selectedAccNo;
+                const item = document.createElement('div');
+                item.className = `p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${isSelected ? 'bg-brand-50 border-brand-500 shadow-sm' : 'bg-gray-50/80 border-gray-200 hover:bg-brand-50/50'}`;
+                item.onclick = () => {
+                    selectedAccNo = acc.account_number;
+                    renderActiveAccountUI();
+                    closeAccountSwitcher();
+                };
+
+                item.innerHTML = `
+                    <div>
+                        <p class="font-bold text-xs text-brand-900">${acc.account_name}</p>
+                        <p class="text-[11px] text-gray-500">เลขบัญชี: ${acc.account_number}</p>
+                        <p class="text-[11px] font-bold text-brand-600 mt-0.5">${Number(acc.silver).toLocaleString()} Silver</p>
+                    </div>
+                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-brand-600 bg-brand-600' : 'border-gray-300'}">
+                        ${isSelected ? '<div class="w-2 h-2 rounded-full bg-white"></div>' : ''}
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        // สร้างบัญชีใหม่ เอาคำว่า (ยอดเงินเริ่มต้น 0 Silver) ออกจากป๊อปอัพ
+        async function createNewAccount() {
+            if (myAccounts.length >= 3) return;
+
+            const newAccNo = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+            const newAccName = `บัญชีที่ ${myAccounts.length + 1}`;
+
+            const { error } = await supabaseClient.from('bank_accounts').insert([{
+                user_id: currentUserId,
+                account_name: newAccName,
+                account_number: newAccNo,
+                silver: 0.00
+            }]);
+
+            if (!error) {
+                showModal("สำเร็จ", "เปิดบัญชีธนาคารใหม่เรียบร้อยแล้ว", "🎉");
+                selectedAccNo = newAccNo;
+                await loadAccounts();
+            } else {
+                showModal("ข้อผิดพลาด", error.message, "❌");
+            }
+        }
+
+        async function renameAccount(accId, newName) {
+            if (!newName.trim()) return;
+            await supabaseClient.from('bank_accounts').update({ account_name: newName.trim() }).eq('id', accId);
+            await loadAccounts();
+        }
+
+        async function deleteAccount(accId) {
+            if (myAccounts.length <= 1) return;
+
+            const { error } = await supabaseClient.from('bank_accounts').delete().eq('id', accId);
+            if (!error) {
+                showModal("ลบบัญชีแล้ว", "ทำการลบบัญชีธนาคารสำเร็จ", "🗑️");
+                selectedAccNo = null;
+                await loadAccounts();
+            }
+        }
+
+        function switchBankTab(tab) {
+            const btnTransfer = document.getElementById('tab-btn-transfer');
+            const btnContacts = document.getElementById('tab-btn-contacts');
+            const viewTransfer = document.getElementById('view-transfer');
+            const viewContacts = document.getElementById('view-contacts');
+
+            if (tab === 'transfer') {
+                btnTransfer.className = "flex-1 py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md transition";
+                btnContacts.className = "flex-1 py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition";
+                viewTransfer.classList.remove('hidden');
+                viewContacts.classList.add('hidden');
+            } else {
+                btnContacts.className = "flex-1 py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md transition";
+                btnTransfer.className = "flex-1 py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition";
+                viewContacts.classList.remove('hidden');
+                viewTransfer.classList.add('hidden');
+            }
+        }
+
+        async function executeTransfer() {
+            const recAcc = document.getElementById('transfer-rec-acc').value.trim();
+            const amount = parseFloat(document.getElementById('transfer-amount').value);
+            const note = document.getElementById('transfer-note').value.trim();
+
+            if (!selectedAccNo) { showModal("แจ้งเตือน", "กรุณาเลือกบัญชีผู้โอนก่อนครับ", "⚠️"); return; }
+            if (!recAcc || recAcc.length !== 10) { showModal("ข้อมูลไม่ถูกต้อง", "กรุณากรอกเลขบัญชีปลายทาง 10 หลัก", "⚠️"); return; }
+            if (isNaN(amount) || amount <= 0) { showModal("ข้อมูลไม่ถูกต้อง", "กรุณากรอกจำนวนเงินให้ถูกต้อง", "⚠️"); return; }
+
+            showModal("กำลังโอนเงิน...", "โปรดรอสักครู่ ระบบกำลังทำรายการธุรกรรม", "⏳");
+
+            const { data, error } = await supabaseClient.rpc('transfer_silver', {
+                sender_account_no: selectedAccNo,
+                receiver_account_no: recAcc,
+                transfer_amount: amount,
+                transfer_note: note
+            });
+
+            closeModal();
+
+            if (error) {
+                showModal("โอนเงินไม่สำเร็จ", error.message, "❌");
+                return;
+            }
+
+            const { data: recData } = await supabaseClient.from('bank_accounts').select('account_name').eq('account_number', recAcc).single();
+            const senderAcc = myAccounts.find(a => a.account_number === selectedAccNo);
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+            const slipHtml = `
+                <div class="bg-brand-50 p-4 rounded-2xl border border-brand-200 text-left text-xs space-y-2 mt-2">
+                    <p class="text-center font-bold text-brand-900 border-b pb-2 mb-2">🧾 สลิปการโอนเงินสำเร็จ</p>
+                    <p><b>วันที่/เวลา:</b> ${dateStr}</p>
+                    <p><b>ผู้โอน:</b> ${senderAcc ? senderAcc.account_name : 'บัญชีฉัน'} (${selectedAccNo})</p>
+                    <p><b>ผู้รับ:</b> ${recData ? recData.account_name : 'บัญชีปลายทาง'} (${recAcc})</p>
+                    <p class="text-brand-600 font-extrabold text-sm py-1"><b>จำนวนเงิน:</b> ${amount.toLocaleString()} Silver</p>
+                    <p><b>หมายเหตุ:</b> ${note || '-'}</p>
+                </div>
+            `;
+
+            showModal("โอนเงินสำเร็จ!", slipHtml, "✅");
+            document.getElementById('transfer-amount').value = '';
+            document.getElementById('transfer-note').value = '';
+            document.getElementById('transfer-rec-acc').value = '';
+            await loadAccounts();
+        }
+
+        async function loadContacts() {
+            const { data } = await supabaseClient.from('bank_contacts').select('*').eq('user_id', currentUserId);
+            const container = document.getElementById('contacts-list');
+            container.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<p class="text-[11px] text-gray-400 text-center py-4 bg-white rounded-2xl border border-brand-100">ยังไม่มีรายชื่อที่บันทึกไว้</p>';
+                return;
+            }
+
+            data.forEach(c => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center p-3.5 bg-white rounded-2xl border border-brand-100 shadow-sm";
+                item.innerHTML = `
+                    <div>
+                        <h5 class="font-bold text-xs text-brand-900">${c.contact_name}</h5>
+                        <p class="text-[10px] text-gray-500">${c.account_number}</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="quickTransfer('${c.account_number}')" class="bg-brand-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl hover:bg-brand-700 transition">โอนเงิน</button>
+                        <button onclick="deleteContact('${c.id}')" class="text-[10px] text-red-500 hover:text-red-700 px-2 py-1">ลบ</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function addContact() {
+            const name = document.getElementById('contact-name-input').value.trim();
+            const acc = document.getElementById('contact-acc-input').value.trim();
+
+            if (!name || !acc || acc.length !== 10) {
+                showModal("ข้อมูลไม่ครบ", "กรุณากรอกชื่อและเลขบัญชี 10 หลักให้ถูกต้อง", "⚠️");
+                return;
+            }
+
+            await supabaseClient.from('bank_contacts').insert([{ user_id: currentUserId, contact_name: name, account_number: acc }]);
+            document.getElementById('contact-name-input').value = '';
+            document.getElementById('contact-acc-input').value = '';
+            await loadContacts();
+            showModal("บันทึกสำเร็จ", "เพิ่มรายชื่อใหม่เรียบร้อยแล้ว!", "✨");
+        }
+
+        async function deleteContact(id) {
+            await supabaseClient.from('bank_contacts').delete().eq('id', id);
+            await loadContacts();
+        }
+
+        function quickTransfer(accNo) {
+            switchBankTab('transfer');
+            document.getElementById('transfer-rec-acc').value = accNo;
+        }
+    </script>
+</body>
+</html>
