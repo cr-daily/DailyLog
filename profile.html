@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - โปรไฟล์ผู้เล่น</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- นำเข้าไฟล์ตั้งค่า Cloudinary กลางของคุณ -->
+    <script src="cloudinary-config.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8 pb-20">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-2xl space-y-6">
+        
+        <!-- Header Nav -->
+        <div class="flex items-center justify-between border-b border-brand-200 pb-4 mb-2">
+            <button onclick="location.href='home.html'" class="flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition">
+                <span>◀ กลับหน้าหลัก</span>
+            </button>
+            <h1 class="text-lg font-extrabold text-brand-900">👤 โปรไฟล์ผู้เล่น</h1>
+            <div class="w-12"></div>
+        </div>
+
+        <!-- Section 1: ข้อมูลผู้เล่น -->
+        <div class="bg-gradient-to-r from-brand-50 to-brand-100/60 p-6 rounded-3xl border border-brand-200 shadow-sm relative">
+            <div class="flex flex-col sm:flex-row items-center gap-6">
+                <!-- Avatar & Upload Button -->
+                <div class="relative flex-shrink-0">
+                    <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-black flex items-center justify-center">
+                        <img id="profile-avatar" src="" class="w-full h-full object-cover">
+                    </div>
+                    <label for="avatar-input" class="absolute bottom-0 right-0 bg-brand-600 text-white p-2 rounded-full cursor-pointer hover:bg-brand-700 transition shadow-md text-xs flex items-center justify-center w-8 h-8 z-10" title="เปลี่ยนรูปโปรไฟล์">
+                        📷
+                    </label>
+                    <input type="file" id="avatar-input" accept="image/*" class="hidden" onchange="handleAvatarChange(event)">
+                </div>
+
+                <!-- Profile Info Form -->
+                <div class="flex-1 w-full space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold bg-brand-200/80 text-brand-900 px-3 py-1 rounded-full">ID: <span id="profile-custom-id">--------</span></span>
+                        <button onclick="saveProfileChanges()" class="bg-brand-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold hover:bg-brand-700 transition shadow-sm">บันทึกข้อมูล</button>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-brand-800 mb-0.5">ชื่อ (Name)</label>
+                        <input type="text" id="input-name" class="w-full px-3 py-2 rounded-xl border border-brand-200 text-xs bg-white focus:outline-none focus:border-brand-500 shadow-inner">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-brand-800 mb-0.5">ชื่อเต็ม (Full Name)</label>
+                        <input type="text" id="input-fullname" class="w-full px-3 py-2 rounded-xl border border-brand-200 text-xs bg-white focus:outline-none focus:border-brand-500 shadow-inner">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-brand-800 mb-0.5">วันเกิด (วัน/เดือน)</label>
+                        <input type="text" id="input-birthdate" placeholder="เช่น 15/08" class="w-full px-3 py-2 rounded-xl border border-brand-200 text-xs bg-white focus:outline-none focus:border-brand-500 shadow-inner">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: หลอดพลังงาน & หลอดอาหาร และการอัปเลเวล -->
+        <div class="bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-md border border-brand-200 space-y-6">
+            <div class="border-b border-brand-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <h3 class="font-bold text-brand-900 text-sm whitespace-nowrap">⚡ สถานะร่างกาย & การอัปเลเวล</h3>
+                <span class="text-xs text-gray-500">ยอดเงิน: <b id="user-silver-display" class="text-brand-600 font-extrabold">0</b> Silver</span>
+            </div>
+
+            <!-- Energy Bar -->
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs font-bold">
+                    <span class="text-amber-700">⚡ หลอดพลังงาน (Energy)</span>
+                    <span id="energy-text">100 / 100</span>
+                </div>
+                <div class="w-full bg-gray-100 h-4 rounded-full overflow-hidden p-0.5 border border-amber-200 shadow-inner">
+                    <div id="energy-bar" class="bg-gradient-to-r from-amber-400 to-amber-500 h-full rounded-full transition-all duration-300" style="width: 100%"></div>
+                </div>
+                <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-gray-500">MAX ปัจจุบัน: <b id="energy-max-val">100</b> (Lv. <span id="energy-lv">1</span>)</span>
+                    <button onclick="upgradeStat('energy')" class="bg-amber-500 text-white px-3 py-1 rounded-xl font-bold hover:bg-amber-600 transition shadow-sm">
+                        อัป MAX (+25) ใช้ <span id="energy-cost">50</span> Silver
+                    </button>
+                </div>
+            </div>
+
+            <!-- Food Bar -->
+            <div class="space-y-2 border-t border-brand-100 pt-4">
+                <div class="flex justify-between text-xs font-bold">
+                    <span class="text-emerald-700">🍲 หลอดอาหาร (Food)</span>
+                    <span id="food-text">100 / 100</span>
+                </div>
+                <div class="w-full bg-gray-100 h-4 rounded-full overflow-hidden p-0.5 border border-emerald-200 shadow-inner">
+                    <div id="food-bar" class="bg-gradient-to-r from-emerald-400 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: 100%"></div>
+                </div>
+                <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-gray-500">MAX ปัจจุบัน: <b id="food-max-val">100</b> (Lv. <span id="food-lv">1</span>)</span>
+                    <button onclick="upgradeStat('food')" class="bg-emerald-600 text-white px-3 py-1 rounded-xl font-bold hover:bg-emerald-700 transition shadow-sm">
+                        อัป MAX (+25) ใช้ <span id="food-cost">50</span> Silver
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: แถบการ์ดวุฒิการศึกษา / รางวัล -->
+        <div class="bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-md border border-brand-200">
+            <h3 class="font-bold text-brand-900 text-sm mb-4">🏅 ประกาศนียบัตร / วุฒิการศึกษา (เห็นเฉพาะคุณ)</h3>
+            <div id="certificates-container" class="space-y-3">
+                <p class="text-xs text-gray-400 text-center py-4">ยังไม่มีประกาศนียบัตร (รับได้จากการเรียนจบ Learnify หรือทำงาน)</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Custom Modal Popup -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        let currentUserId = null;
+        let userProfile = null;
+        let userBankAcc = null;
+
+        function showModal(title, message, icon = '✨') {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+
+            currentUserId = session.user.id;
+            await loadProfileData();
+            await loadCertificates();
+        });
+
+        async function loadProfileData() {
+            const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', currentUserId).single();
+            if (profile) {
+                userProfile = profile;
+                document.getElementById('profile-custom-id').innerText = profile.custom_id;
+                document.getElementById('input-name').value = profile.name || '';
+                document.getElementById('input-fullname').value = profile.fullname || '';
+                document.getElementById('input-birthdate').value = profile.birthdate || '';
+                if (profile.avatar) {
+                    document.getElementById('profile-avatar').src = profile.avatar;
+                }
+
+                updateBarsUI();
+            }
+
+            const activeAccNo = sessionStorage.getItem('active_bank_acc');
+            let bankQuery = supabaseClient.from('bank_accounts').select('*').eq('user_id', currentUserId);
+            
+            if (activeAccNo) {
+                bankQuery = bankQuery.eq('account_number', activeAccNo);
+            }
+
+            const { data: bankData } = await bankQuery.limit(1);
+            
+            if (bankData && bankData.length > 0) {
+                userBankAcc = bankData[0];
+                document.getElementById('user-silver-display').innerText = Number(userBankAcc.silver).toLocaleString();
+            } else {
+                const { data: fallbackBank } = await supabaseClient.from('bank_accounts').select('*').eq('user_id', currentUserId).order('created_at', { ascending: true }).limit(1);
+                if (fallbackBank && fallbackBank.length > 0) {
+                    userBankAcc = fallbackBank[0];
+                    document.getElementById('user-silver-display').innerText = Number(userBankAcc.silver).toLocaleString();
+                } else {
+                    document.getElementById('user-silver-display').innerText = '0';
+                }
+            }
+        }
+
+        async function loadCertificates() {
+            const { data: certs, error } = await supabaseClient
+                .from('user_certificates')
+                .select('*')
+                .eq('user_id', currentUserId)
+                .order('created_at', { ascending: false });
+
+            const container = document.getElementById('certificates-container');
+            if (error || !certs || certs.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">ยังไม่มีประกาศนียบัตร (รับได้จากการเรียนจบ Learnify หรือทำงาน)</p>`;
+                return;
+            }
+
+            // 🔍 กรองข้อมูลไม่ให้ชื่อใบประกาศซ้ำซ้อนกัน (แสดงเฉพาะใบแรกที่ถูกบันทึกไว้)
+            const uniqueCertsMap = new Map();
+            certs.forEach(c => {
+                if (!uniqueCertsMap.has(c.title)) {
+                    uniqueCertsMap.set(c.title, c);
+                }
+            });
+            const uniqueCerts = Array.from(uniqueCertsMap.values());
+
+            container.innerHTML = uniqueCerts.map(c => `
+                <div class="bg-brand-50/60 p-3.5 rounded-2xl border border-brand-100 flex items-center justify-between gap-3 shadow-sm">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">🎓</span>
+                        <div>
+                            <h4 class="font-bold text-xs text-brand-950">${c.title}</h4>
+                            <span class="text-[9px] font-semibold text-brand-600 bg-white px-2 py-0.5 rounded-md border border-brand-200 mt-1 inline-block">${c.degree_level}</span>
+                        </div>
+                    </div>
+                    <button onclick="togglePublicCert('${c.id}', ${!c.is_public})" class="text-[10px] font-bold px-3 py-1.5 rounded-xl transition ${c.is_public ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'} shrink-0">
+                        ${c.is_public ? '🌐 สาธารณะ' : '🔒 ส่วนตัว'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function togglePublicCert(certId, newStatus) {
+            const { error } = await supabaseClient
+                .from('user_certificates')
+                .update({ is_public: newStatus })
+                .eq('id', certId);
+
+            if (!error) {
+                loadCertificates();
+            } else {
+                showModal("เกิดข้อผิดพลาด", error.message, "❌");
+            }
+        }
+
+        function updateBarsUI() {
+            const energy = userProfile.energy || 100;
+            const maxEnergy = userProfile.max_energy || 100;
+            const food = userProfile.food || 100;
+            const maxFood = userProfile.max_food || 100;
+
+            const energyLv = Math.floor((maxEnergy - 100) / 25) + 1;
+            const energyCost = energyLv * 50;
+
+            const foodLv = Math.floor((maxFood - 100) / 25) + 1;
+            const foodCost = foodLv * 50;
+
+            document.getElementById('energy-text').innerText = `${energy} / ${maxEnergy}`;
+            document.getElementById('energy-bar').style.width = `${Math.min((energy / maxEnergy) * 100, 100)}%`;
+            document.getElementById('energy-max-val').innerText = maxEnergy;
+            document.getElementById('energy-lv').innerText = energyLv;
+            document.getElementById('energy-cost').innerText = energyCost;
+
+            document.getElementById('food-text').innerText = `${food} / ${maxFood}`;
+            document.getElementById('food-bar').style.width = `${Math.min((food / maxFood) * 100, 100)}%`;
+            document.getElementById('food-max-val').innerText = maxFood;
+            document.getElementById('food-lv').innerText = foodLv;
+            document.getElementById('food-cost').innerText = foodCost;
+        }
+
+        async function handleAvatarChange(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showModal("กำลังอัปโหลด...", "กำลังอัปโหลดรูปภาพของคุณไปยัง Cloudinary...", "⏳");
+
+            const imageUrl = await uploadToCloudinary(file);
+            
+            if (imageUrl) {
+                document.getElementById('profile-avatar').src = imageUrl;
+                userProfile.avatar = imageUrl;
+
+                const { error } = await supabaseClient.from('profiles').update({ avatar: imageUrl }).eq('id', currentUserId);
+                
+                closeModal();
+                if (!error) {
+                    showModal("อัปโหลดสำเร็จ!", "เปลี่ยนรูปโปรไฟล์ของคุณเรียบร้อยแล้ว", "🎉");
+                } else {
+                    showModal("ข้อผิดพลาด", error.message, "❌");
+                }
+            } else {
+                closeModal();
+            }
+        }
+
+        async function saveProfileChanges() {
+            const name = document.getElementById('input-name').value.trim();
+            const fullname = document.getElementById('input-fullname').value.trim();
+            const birthdate = document.getElementById('input-birthdate').value.trim();
+
+            if (!name || !fullname) {
+                showModal("ข้อมูลไม่ครบถ้วน", "กรุณากรอกชื่อและชื่อเต็มให้ครบถ้วนครับ", "⚠️");
+                return;
+            }
+
+            showModal("กำลังบันทึก...", "กำลังอัปเดตข้อมูลส่วนตัวของคุณ", "⏳");
+
+            const { error } = await supabaseClient.from('profiles').update({
+                name: name,
+                fullname: fullname,
+                birthdate: birthdate
+            }).eq('id', currentUserId);
+
+            closeModal();
+            if (!error) {
+                showModal("บันทึกสำเร็จ", "อัปเดตข้อมูลส่วนตัวเรียบร้อยแล้ว!", "✨");
+            } else {
+                showModal("เกิดข้อผิดพลาด", error.message, "❌");
+            }
+        }
+
+        async function upgradeStat(type) {
+            if (!userBankAcc) return;
+
+            const isEnergy = type === 'energy';
+            const currentMax = isEnergy ? (userProfile.max_energy || 100) : (userProfile.max_food || 100);
+            const currentLv = Math.floor((currentMax - 100) / 25) + 1;
+            const cost = currentLv * 50;
+
+            if (Number(userBankAcc.silver) < cost) {
+                showModal("เงินไม่เพียงพอ", `คุณต้องใช้ ${cost} Silver ในการอัปเลเวล แต่คุณมีเพียง ${Number(userBankAcc.silver).toLocaleString()} Silver`, "❌");
+                return;
+            }
+
+            const newSilver = Number(userBankAcc.silver) - cost;
+            await supabaseClient.from('bank_accounts').update({ silver: newSilver }).eq('id', userBankAcc.id);
+            userBankAcc.silver = newSilver;
+
+            const newMax = currentMax + 25;
+            const updatePayload = isEnergy ? { max_energy: newMax } : { max_food: newMax };
+            await supabaseClient.from('profiles').update(updatePayload).eq('id', currentUserId);
+
+            if (isEnergy) userProfile.max_energy = newMax;
+            else userProfile.max_food = newMax;
+
+            document.getElementById('user-silver-display').innerText = Number(newSilver).toLocaleString();
+            updateBarsUI();
+
+            showModal("อัปเลเวลสำเร็จ!", `อัปเดตค่า ${isEnergy ? 'พลังงาน' : 'อาหาร'} MAX เป็น ${newMax} เรียบร้อยแล้ว!`, "🎉");
+        }
+    </script>
+</body>
+</html>
