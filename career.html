@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - Career</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8 pb-20">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-2xl space-y-6">
+        
+        <!-- Header Nav -->
+        <div class="border-b border-brand-200 pb-4 flex items-center justify-between">
+            <div class="space-y-1">
+                <button onclick="location.href='home.html'" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition">
+                    <span>◀ กลับหน้าหลัก</span>
+                </button>
+                <h1 class="text-xl font-extrabold text-brand-900 whitespace-nowrap">💼 Career (ระบบงานและการทำงาน)</h1>
+            </div>
+            <!-- แสดงยอดเงินบัญชีปัจจุบันแบบการ์ดแยกด้านล่างหัวข้อ หรือมุมขวา -->
+            <div class="text-right bg-white/80 px-3 py-2 rounded-2xl border border-brand-200 shadow-sm shrink-0">
+                <span class="text-[10px] text-gray-500 block whitespace-nowrap">เงินในบัญชีปัจจุบัน</span>
+                <span id="user-silver-display" class="text-xs font-extrabold text-brand-600">0 Silver</span>
+            </div>
+        </div>
+
+        <!-- Tab Switcher -->
+        <div class="grid grid-cols-2 gap-2 bg-brand-100/80 p-1.5 rounded-2xl text-center">
+            <button id="tab-main-btn" onclick="switchTab('main')" class="py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition">งานหลัก (Main Career)</button>
+            <button id="tab-side-btn" onclick="switchTab('side')" class="py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition">งานเสริม (Side Job)</button>
+        </div>
+
+        <!-- Section 1: Main Career View -->
+        <div id="view-main" class="space-y-4">
+            <!-- สถานะงานหลักปัจจุบัน / เลือกงาน -->
+            <div id="main-career-container" class="space-y-4">
+                <p class="text-center text-xs text-gray-400 py-6">กำลังโหลดข้อมูลงานหลัก...</p>
+            </div>
+        </div>
+
+        <!-- Section 2: Side Job View -->
+        <div id="view-side" class="hidden space-y-4">
+            <div class="bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-brand-200 shadow-sm space-y-2">
+                <h2 class="text-sm font-bold text-brand-900">⚡ งานเสริมรับจ้างทั่วไป</h2>
+                <p class="text-[11px] text-gray-500">ทำงานเสริมเพื่อรับเงินทันทีเมื่อครบกำหนดเวลา (ใช้พลังงานและต้องมีแต้มสกิลที่กำหนด)</p>
+            </div>
+
+            <!-- รายการงานเสริมทั้งหมดที่เปิดรับสมัคร -->
+            <div class="bg-white/80 backdrop-blur-md p-4 rounded-3xl border border-brand-200 shadow-sm space-y-3">
+                <h3 class="text-sm font-bold text-brand-900">📋 งานเสริมที่เปิดรับ</h3>
+                <div id="side-jobs-catalog-container" class="space-y-3">
+                    <p class="text-center text-xs text-gray-400 py-6">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal แจ้งเตือนป๊อปอัพน่ารักๆ -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        let currentUserId = null;
+        let currentUserProfile = null;
+        let activeBankAccount = null;
+        let userSkillsMap = {};
+
+        function showModal(title, message, icon = '✨') {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        function switchTab(tab) {
+            const mainBtn = document.getElementById('tab-main-btn');
+            const sideBtn = document.getElementById('tab-side-btn');
+            const mainView = document.getElementById('view-main');
+            const sideView = document.getElementById('view-side');
+
+            if (tab === 'main') {
+                mainBtn.className = "py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition";
+                sideBtn.className = "py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition";
+                mainView.classList.remove('hidden');
+                sideView.classList.add('hidden');
+            } else {
+                sideBtn.className = "py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition";
+                mainBtn.className = "py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition";
+                sideView.classList.remove('hidden');
+                mainView.classList.add('hidden');
+            }
+        }
+
+        function getSkillSalaryMultiplier(level) {
+            if (level === 2) return 0.05;
+            if (level === 3 || level === 4) return 0.10;
+            if (level === 5) return 0.15;
+            if (level === 6 || level === 7) return 0.20;
+            if (level === 8) return 0.25;
+            if (level === 9) return 0.30;
+            if (level >= 10) return 0.50;
+            return 0.00;
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+            currentUserId = session.user.id;
+
+            await loadUserData();
+            await loadActiveAccount();
+            await loadUserSkills();
+            await loadCareersData();
+        });
+
+        async function loadUserData() {
+            const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', currentUserId).single();
+            if (profile) currentUserProfile = profile;
+        }
+
+        async function loadActiveAccount() {
+            const activeAccNo = sessionStorage.getItem('active_bank_acc');
+            let query = supabaseClient.from('bank_accounts').select('*').eq('user_id', currentUserId);
+            
+            if (activeAccNo) {
+                query = query.eq('account_number', activeAccNo);
+            }
+
+            const { data } = await query.limit(1);
+            if (data && data.length > 0) {
+                activeBankAccount = data[0];
+                document.getElementById('user-silver-display').innerText = Number(activeBankAccount.silver).toLocaleString() + ' Silver';
+            } else {
+                const { data: fallback } = await supabaseClient.from('bank_accounts').select('*').eq('user_id', currentUserId).order('created_at', { ascending: true }).limit(1);
+                if (fallback && fallback.length > 0) {
+                    activeBankAccount = fallback[0];
+                    document.getElementById('user-silver-display').innerText = Number(activeBankAccount.silver).toLocaleString() + ' Silver';
+                } else {
+                    document.getElementById('user-silver-display').innerText = '0 Silver';
+                }
+            }
+        }
+
+        async function loadUserSkills() {
+            const { data: skills } = await supabaseClient.from('user_skills').select('*').eq('user_id', currentUserId);
+            userSkillsMap = {};
+            if (skills) {
+                skills.forEach(s => {
+                    userSkillsMap[s.skill_name] = s;
+                });
+            }
+        }
+
+        async function loadCareersData() {
+            const { data: catalog } = await supabaseClient.from('careers_catalog').select('*');
+            const { data: userCareers } = await supabaseClient.from('user_careers').select('*, careers_catalog(*)').eq('user_id', currentUserId);
+
+            renderMainCareer(catalog ? catalog.filter(c => c.type === 'main') : [], userCareers ? userCareers.find(uc => uc.careers_catalog && uc.careers_catalog.type === 'main') : null);
+            renderSideJobs(catalog ? catalog.filter(c => c.type === 'side') : []);
+        }
+
+        async function renderMainCareer(mainCatalog, currentMainJob) {
+            const container = document.getElementById('main-career-container');
+            container.innerHTML = '';
+
+            if (currentMainJob) {
+                const job = currentMainJob.careers_catalog;
+                const skillData = userSkillsMap[job.required_skill_name] || { level: 1, points: 0 };
+                const multiplier = getSkillSalaryMultiplier(skillData.level);
+                const finalDailySalary = job.salary_or_reward * (1 + multiplier);
+
+                container.innerHTML = `
+                    <div class="bg-white/95 backdrop-blur-md p-5 rounded-3xl border-2 border-brand-300 shadow-md space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="bg-brand-100 text-brand-700 text-[10px] font-bold px-3 py-1 rounded-full">💼 งานหลักประจำ</span>
+                            <span class="text-xs font-bold text-brand-600">ระดับงาน: Lv. ${currentMainJob.job_level}</span>
+                        </div>
+                        <div class="space-y-1">
+                            <h2 class="text-base font-extrabold text-brand-900">${job.title}</h2>
+                            <p class="text-xs text-gray-600">รายได้พื้นฐาน: <span class="font-bold text-brand-600">${parseFloat(job.salary_or_reward).toLocaleString()} Silver / วัน</span> (โบนัสสกิล ${job.required_skill_name || 'ทั่วไป'} +${Math.round(multiplier*100)}% = ${finalDailySalary.toLocaleString()} Silver)</p>
+                            <p class="text-[11px] text-gray-500">พลังงานที่ใช้ต่อวัน: ${job.energy_cost} หน่วย</p>
+                        </div>
+                        <div class="bg-brand-50 p-4 rounded-2xl border border-brand-100 flex justify-between items-center">
+                            <div>
+                                <div class="text-[11px] text-gray-500 font-medium">เงินเดือนสะสมรอถอน</div>
+                                <div class="text-lg font-extrabold text-brand-700">${parseFloat(currentMainJob.accrued_salary).toLocaleString()} Silver</div>
+                            </div>
+                            <button onclick="claimMainSalary('${currentMainJob.id}', ${currentMainJob.accrued_salary})" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-md">
+                                กดรับเงินเดือน
+                            </button>
+                        </div>
+                        <div class="flex space-x-2 pt-2">
+                            <button onclick="upgradeMainJob('${currentMainJob.id}', ${currentMainJob.job_level})" class="flex-1 bg-white border border-brand-300 text-brand-700 hover:bg-brand-50 font-bold text-xs py-2.5 rounded-xl transition shadow-sm">
+                                📈 เลื่อนขั้นงาน (อัปเลเวล)
+                            </button>
+                            <button onclick="resignJob('${currentMainJob.id}')" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-xs px-4 py-2.5 rounded-xl transition">
+                                ลาออก
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                let html = `
+                    <div class="bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-brand-200 shadow-sm space-y-3">
+                        <h2 class="text-sm font-bold text-brand-900">✨ เลือกสมัครงานหลักประจำ</h2>
+                        <p class="text-[11px] text-gray-500">คุณสามารถเลือกทำงานหลักได้เพียง 1 อาชีพเท่านั้น</p>
+                        <div class="space-y-3 pt-2">
+                `;
+                if (mainCatalog.length === 0) {
+                    html += `<p class="text-center text-xs text-gray-400 py-6">ขณะนี้ยังไม่มีข้อมูล</p>`;
+                } else {
+                    mainCatalog.forEach(job => {
+                        html += `
+                            <div class="bg-white p-4 rounded-2xl border border-brand-100 shadow-sm flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <h4 class="font-bold text-xs text-brand-900">${job.title}</h4>
+                                    <p class="text-[10px] text-gray-500">รายได้: <span class="font-semibold text-brand-600">${parseFloat(job.salary_or_reward).toLocaleString()} Silver/วัน</span> | ใช้พลังงาน: ${job.energy_cost}</p>
+                                    <p class="text-[10px] text-brand-700 font-medium">ต้องการสกิล: ${job.required_skill_name || 'ไม่จำกัด'} (Lv. ${job.required_skill_level} ขึ้นไป)</p>
+                                </div>
+                                <button onclick="applyMainJob('${job.id}', '${job.required_skill_name}', ${job.required_skill_level})" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm">
+                                    สมัครงาน
+                                </button>
+                            </div>
+                        `;
+                    });
+                }
+                html += `</div></div>`;
+                container.innerHTML = html;
+            }
+        }
+
+        async function applyMainJob(jobId, reqSkillName, reqSkillLevel) {
+            if (reqSkillName && reqSkillName !== 'null' && reqSkillName !== 'undefined') {
+                const userSkill = userSkillsMap[reqSkillName];
+                if (!userSkill || userSkill.level < reqSkillLevel) {
+                    showModal("สกิลไม่ถึงเกณฑ์!", `อาชีพนี้ต้องการทักษะ "${reqSkillName}" เลเวล ${reqSkillLevel} ขึ้นไป`, "⚠️");
+                    return;
+                }
+            }
+
+            await supabaseClient.from('user_careers').insert([{
+                user_id: currentUserId,
+                career_id: jobId,
+                job_level: 1,
+                accrued_salary: 0
+            }]);
+
+            showModal("สมัครงานสำเร็จ! 🎉", "คุณได้เริ่มทำงานหลักประจำเรียบร้อยแล้ว รายได้จะสะสมทุกวัน", "💼");
+            await loadCareersData();
+        }
+
+        async function claimMainSalary(userCareerId, amount) {
+            if (amount <= 0) {
+                showModal("ยังไม่มีเงินสะสม", "ยังไม่มีรายได้สะสมให้กดรับในขณะนี้", "💰");
+                return;
+            }
+
+            if (!activeBankAccount) {
+                showModal("ไม่พบบัญชีธนาคาร", "กรุณาสร้างบัญชีธนาคารก่อนรับเงิน", "⚠️");
+                return;
+            }
+
+            const newSilver = parseFloat(activeBankAccount.silver) + parseFloat(amount);
+            
+            await supabaseClient.from('bank_accounts').update({ silver: newSilver }).eq('id', activeBankAccount.id);
+            await supabaseClient.from('user_careers').update({ accrued_salary: 0 }).eq('id', userCareerId);
+
+            activeBankAccount.silver = newSilver;
+            document.getElementById('user-silver-display').innerText = newSilver.toLocaleString() + ' Silver';
+
+            showModal("รับเงินสำเร็จ! 💰", `โอนเงินเข้าบัญชี ${activeBankAccount.account_name} (${activeBankAccount.account_number}) จำนวน ${parseFloat(amount).toLocaleString()} Silver เรียบร้อยแล้ว`, "🎉");
+            await loadCareersData();
+        }
+
+        async function upgradeMainJob(userCareerId, currentLevel) {
+            let upgradeCost = currentLevel * 10000;
+
+            if (!activeBankAccount || parseFloat(activeBankAccount.silver) < upgradeCost) {
+                showModal("เงินไม่พอเลื่อนขั้น!", `การเลื่อนขั้นงานต้องการเงิน ${upgradeCost.toLocaleString()} Silver`, "💰");
+                return;
+            }
+
+            const newSilver = parseFloat(activeBankAccount.silver) - upgradeCost;
+            await supabaseClient.from('bank_accounts').update({ silver: newSilver }).eq('id', activeBankAccount.id);
+            await supabaseClient.from('user_careers').update({ job_level: currentLevel + 1 }).eq('id', userCareerId);
+
+            activeBankAccount.silver = newSilver;
+            document.getElementById('user-silver-display').innerText = newSilver.toLocaleString() + ' Silver';
+
+            showModal("เลื่อนขั้นสำเร็จ! 🌟", `คุณได้รับการเลื่อนตำแหน่งเป็นระดับ Lv. ${currentLevel + 1} แล้ว`, "📈");
+            await loadCareersData();
+        }
+
+        async function resignJob(userCareerId) {
+            await supabaseClient.from('user_careers').delete().eq('id', userCareerId);
+            showModal("ลาออกสำเร็จ", "คุณได้ลาออกจากงานหลักเรียบร้อยแล้ว", "👋");
+            await loadCareersData();
+        }
+
+        async function renderSideJobs(sideCatalog) {
+            const container = document.getElementById('side-jobs-catalog-container');
+            container.innerHTML = '';
+
+            if (sideCatalog.length === 0) {
+                container.innerHTML = `<p class="text-center text-xs text-gray-400 py-6">ขณะนี้ยังไม่มีข้อมูล</p>`;
+                return;
+            }
+
+            sideCatalog.forEach(job => {
+                container.innerHTML += `
+                    <div class="bg-white p-4 rounded-2xl border border-brand-100 shadow-sm flex items-center justify-between">
+                        <div class="space-y-1">
+                            <h4 class="font-bold text-xs text-brand-900">⚡ ${job.title}</h4>
+                            <p class="text-[10px] text-gray-500">ผลตอบแทน: <span class="font-semibold text-brand-600">${parseFloat(job.salary_or_reward).toLocaleString()} Silver</span> | เวลา: ${job.duration_minutes} นาที</p>
+                            <p class="text-[10px] text-brand-700 font-medium">พลังงานที่ใช้: ${job.energy_cost} | ต้องการสกิล: ${job.required_skill_name || 'ทั่วไป'}</p>
+                        </div>
+                        <button onclick="startSideJob('${job.id}', ${job.duration_minutes}, ${job.energy_cost}, '${job.required_skill_name}')" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm">
+                            รับงานเสริม
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        async function startSideJob(jobId, durationMinutes, energyCost, reqSkillName) {
+            if (currentUserProfile.energy < energyCost) {
+                showModal("พลังงานไม่พอ!", `งานนี้ต้องใช้พลังงาน ${energyCost} หน่วย (คุณเหลือ ${currentUserProfile.energy})`, "⚡");
+                return;
+            }
+
+            if (reqSkillName && reqSkillName !== 'null' && reqSkillName !== 'undefined') {
+                const userSkill = userSkillsMap[reqSkillName];
+                if (!userSkill || userSkill.points <= 0) {
+                    showModal("สกิลไม่ถึงเกณฑ์!", `งานเสริมนี้ต้องมีแต้มในทักษะ "${reqSkillName}" อย่างน้อย 1 แต้ม`, "⚠️");
+                    return;
+                }
+            }
+
+            const newEnergy = currentUserProfile.energy - energyCost;
+            await supabaseClient.from('profiles').update({ energy: newEnergy }).eq('id', currentUserId);
+            currentUserProfile.energy = newEnergy;
+
+            await supabaseClient.from('user_careers').insert([{
+                user_id: currentUserId,
+                career_id: jobId,
+                job_level: 1,
+                accrued_salary: 0,
+                last_claimed_at: new Date().toISOString()
+            }]);
+
+            showModal("รับงานเสริมสำเร็จ! ⚡", `เริ่มทำงานเสริมแล้ว กรุณารอเวลา ${durationMinutes} นาที`, "⏱️");
+            await loadCareersData();
+        }
+    </script>
+</body>
+</html>
