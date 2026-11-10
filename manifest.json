@@ -3,8 +3,8 @@
 // 1. ตั้งค่า PWA (โลโก้ + ซ่อนแถบเบราว์เซอร์)
 // ==========================================
 (function setupPWA() {
-    // 🎨 ใส่ URL ลิงก์รูปโลโก้ของคุณที่ต้องการใช้เป็นไอคอนแอปตรงนี้ (เช่น รูปจาก Cloudinary)
-    const APP_ICON_URL = 'https://res.cloudinary.com/dp6k1rwj/image/upload/v1/your-logo.png'; 
+    // 🎨 อัปเดต URL ลิงก์รูปโลโก้ของคุณเรียบร้อยแล้ว
+    const APP_ICON_URL = 'https://res.cloudinary.com/dp6k1rwj/image/upload/v1794345597/wmremove-transformed.jpg'; 
     const APP_NAME = 'Daily Log';
     const APP_SHORT_NAME = 'DailyLog';
 
@@ -20,13 +20,13 @@
             {
                 src: APP_ICON_URL,
                 sizes: "192x192",
-                type: "image/png",
+                type: "image/jpeg",
                 purpose: "any maskable"
             },
             {
                 src: APP_ICON_URL,
                 sizes: "512x512",
-                type: "image/png",
+                type: "image/jpeg",
                 purpose: "any maskable"
             }
         ]
