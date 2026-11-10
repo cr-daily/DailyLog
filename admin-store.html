@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - Admin Store Management</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 300: '#fda4af',
+                            400: '#fb7185', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c',
+                            800: '#9f1239', 900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }</style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8 pb-20">
+
+    <div class="w-full max-w-2xl space-y-6">
+        
+        <div class="border-b border-brand-200 pb-4 flex items-center justify-between">
+            <div class="space-y-1">
+                <button onclick="location.href='admin.html'" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition">
+                    <span>◀ กลับหน้าแดชบอร์ด</span>
+                </button>
+                <h1 class="text-xl font-extrabold text-brand-950">🛍️ จัดการ Store (ร้านค้าทั่วไป)</h1>
+            </div>
+            <span class="bg-brand-600 text-white text-[10px] font-bold px-3 py-1 rounded-full">ADMIN</span>
+        </div>
+
+        <!-- ฟอร์มเพิ่มสินค้า -->
+        <div class="bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-brand-200 shadow-sm space-y-4">
+            <h2 class="text-sm font-bold text-brand-950">➕ เพิ่มสินค้าใหม่เข้าร้านค้า</h2>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700">ชื่อสินค้า</label>
+                    <input type="text" id="item-name" placeholder="เช่น น้ำอัดลม, ข้าวผัด, แอปเปิ้ล" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700">URL รูปภาพ (Cloudinary)</label>
+                    <input type="text" id="item-image" placeholder="https://res.cloudinary.com/..." class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-700">ราคา (Silver)</label>
+                        <input type="number" id="item-price" placeholder="100" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-700">ประเภทการฟื้นฟู</label>
+                        <select id="item-effect-type" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500 bg-white">
+                            <option value="energy">พลังงาน (Energy)</option>
+                            <option value="food">อาหาร (Food)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700">ค่าหน่วยที่ฟื้นฟู (แต้ม)</label>
+                    <input type="number" id="item-effect-value" placeholder="25" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+                </div>
+                <button onclick="addNewStoreItem()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-3 rounded-xl transition shadow-md">
+                    วางขายสินค้า (Add to Store)
+                </button>
+            </div>
+        </div>
+
+        <!-- รายการสินค้าทั้งหมดในระบบ -->
+        <div class="bg-white/90 backdrop-blur-md p-5 rounded-3xl border border-brand-200 shadow-sm space-y-3">
+            <h2 class="text-sm font-bold text-brand-950">📋 รายการสินค้าที่มีวางขายในร้านค้าปัจจุบัน</h2>
+            <div id="store-items-container" class="space-y-3">
+                <p class="text-center text-xs text-gray-400 py-6">กำลังโหลดข้อมูลสินค้า...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal แจ้งเตือน -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        function showModal(title, message, icon = '✨', cb = null) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+            window.modalCallback = cb;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); if(window.modalCallback) window.modalCallback(); }, 200);
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+            const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', session.user.id).single();
+            if (!profile || profile.role !== 'admin') { window.location.href = 'home.html'; return; }
+            await loadStoreItems();
+        });
+
+        async function loadStoreItems() {
+            const { data: items } = await supabaseClient.from('store_items').select('*').order('created_at', { ascending: false });
+            const container = document.getElementById('store-items-container');
+            container.innerHTML = '';
+
+            if (!items || items.length === 0) {
+                container.innerHTML = '<p class="text-center text-xs text-gray-400 py-6">ยังไม่มีสินค้าในร้านค้า</p>';
+                return;
+            }
+
+            items.forEach(item => {
+                container.innerHTML += `
+                    <div class="bg-white p-3 rounded-2xl border border-brand-100 shadow-sm flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <img src="${item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150'}" class="w-12 h-12 rounded-xl object-cover border">
+                            <div>
+                                <h4 class="font-bold text-xs text-brand-900">${item.name}</h4>
+                                <p class="text-[10px] text-gray-500">ราคา: <span class="font-semibold text-brand-600">${item.price} Silver</span> | ฟื้นฟู ${item.effect_type === 'energy' ? 'พลังงาน' : 'อาหาร'} +${item.effect_value}</p>
+                            </div>
+                        </div>
+                        <button onclick="deleteItem('${item.id}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs px-3 py-1.5 rounded-xl transition">ลบ</button>
+                    </div>
+                `;
+            });
+        }
+
+        async function addNewStoreItem() {
+            const name = document.getElementById('item-name').value.trim();
+            const imageUrl = document.getElementById('item-image').value.trim();
+            const price = parseFloat(document.getElementById('item-price').value);
+            const effectType = document.getElementById('item-effect-type').value;
+            const effectValue = parseInt(document.getElementById('item-effect-value').value);
+
+            if (!name || isNaN(price) || isNaN(effectValue)) {
+                showModal("กรอกข้อมูลไม่ครบ", "กรุณากรอกชื่อ ราคา และค่าฟื้นฟูให้ถูกต้อง", "⚠️");
+                return;
+            }
+
+            const { error } = await supabaseClient.from('store_items').insert([{
+                name, image_url: imageUrl, price, effect_type: effectType, effect_value: effectValue
+            }]);
+
+            if (error) {
+                showModal("เกิดข้อผิดพลาด", error.message, "❌");
+                return;
+            }
+
+            showModal("สำเร็จ! 🎉", "วางขายสินค้าใหม่เข้าร้านค้าเรียบร้อยแล้ว", "🛍️", () => {
+                document.getElementById('item-name').value = '';
+                document.getElementById('item-image').value = '';
+                document.getElementById('item-price').value = '';
+                document.getElementById('item-effect-value').value = '';
+                loadStoreItems();
+            });
+        }
+
+        async function deleteItem(id) {
+            const { error } = await supabaseClient.from('store_items').delete().eq('id', id);
+            if (error) { showModal("เกิดข้อผิดพลาด", error.message, "❌"); return; }
+            showModal("ลบสินค้าสำเร็จ", "นำสินค้าออกจากระบบร้านค้าเรียบร้อยแล้ว", "🗑️", () => loadStoreItems());
+        }
+    </script>
+</body>
+</html>
