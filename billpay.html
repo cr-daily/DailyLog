@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - BillPay</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8 pb-20">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-2xl space-y-6">
+        
+        <!-- Header Nav -->
+        <div class="border-b border-brand-200 pb-4 space-y-1">
+            <button onclick="location.href='home.html'" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition">
+                <span>◀ กลับหน้าหลัก</span>
+            </button>
+            <h1 class="text-xl font-extrabold text-brand-900 whitespace-nowrap">🧾 BillPay (ระบบจัดการและชำระบิล)</h1>
+        </div>
+
+        <!-- กล่องแสดงยอดเงินในบัญชีปัจจุบัน (แถบการ์ดด้านล่างหัวข้อเหมือนหน้า Career/Estate) -->
+        <div class="bg-white/90 backdrop-blur-md px-5 py-3 rounded-3xl border border-brand-200 shadow-sm flex items-center justify-between">
+            <div class="text-xs text-gray-500 font-medium">💰 เงินในบัญชีปัจจุบัน</div>
+            <div id="user-silver-display" class="text-sm font-extrabold text-brand-700">0 Silver</div>
+        </div>
+
+        <!-- Tab Switcher -->
+        <div class="grid grid-cols-2 gap-2 bg-brand-100/80 p-1.5 rounded-2xl text-center">
+            <button id="tab-my-bills-btn" onclick="switchTab('my')" class="py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition">🏠 บิลของฉัน</button>
+            <button id="tab-gift-bills-btn" onclick="switchTab('gift')" class="py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition">🔍 ตรวจสอบบิล</button>
+        </div>
+
+        <!-- Section 1: บิลของผู้เล่นเอง -->
+        <div id="view-my-bills" class="space-y-4">
+            <div class="bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-brand-200 shadow-sm space-y-2">
+                <h2 class="text-sm font-bold text-brand-900">📑 รายการบิลค่าน้ำ-ไฟ และค่าเช่าที่พัก</h2>
+                <p class="text-[11px] text-gray-500">ระบบจะสรุปบิลทุกวันจันทร์ หากมีรูมเมท สามารถให้ใครคนใดคนหนึ่งชำระแทนกันได้</p>
+            </div>
+
+            <div id="my-bills-container" class="space-y-3">
+                <p class="text-center text-xs text-gray-400 py-8">กำลังโหลดรายการบิล...</p>
+            </div>
+        </div>
+
+        <!-- Section 2: ค้นหาบิลเปย์ให้คนอื่น -->
+        <div id="view-gift-bills" class="hidden space-y-4">
+            <div class="bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-brand-200 shadow-sm space-y-3">
+                <h2 class="text-sm font-bold text-brand-900">🔍 ค้นหาบิล</h2>
+                <div class="flex space-x-2">
+                    <input type="text" id="search-bill-input" placeholder="ค้นหาตามชื่อผู้เล่น หรือ เลขห้อง/สถานที่..." class="flex-1 px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+                    <button onclick="searchOtherBills()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-sm">ค้นหา</button>
+                </div>
+            </div>
+
+            <div id="gift-bills-container" class="space-y-3">
+                <p class="text-center text-xs text-gray-400 py-6">กรอกข้อมูลและกดค้นหาเพื่อตรวจสอบบิล</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal แนบข้อความเปย์บิล -->
+    <div id="pay-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 space-y-4 text-center">
+            <div class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">💖</div>
+            <h3 id="pay-modal-title" class="text-lg font-bold text-brand-900">ยืนยันการชำระบิล</h3>
+            <p id="pay-modal-desc" class="text-xs text-gray-600">ยอดชำระทั้งสิ้น: 0 Silver</p>
+            
+            <div id="gift-note-box" class="hidden text-left space-y-1">
+                <label class="text-[11px] font-bold text-brand-800">แนบข้อความสั้นๆ ถึงผู้รับ (ถ้ามี):</label>
+                <input type="text" id="gift-note-input" placeholder="เช่น ตั้งใจเรียนนะคนเก่ง! ❤️" class="w-full px-4 py-2 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+            </div>
+
+            <div class="flex space-x-2 pt-2">
+                <button onclick="confirmPayBill()" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-md">ยืนยันชำระเงิน</button>
+                <button onclick="closePayModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-xs px-4 py-2.5 rounded-xl transition">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal แจ้งเตือนป๊อปอัพทั่วไป -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        let currentUserId = null;
+        let activeBankAccount = null;
+        let selectedBillForPay = null;
+        let isGiftPayment = false;
+
+        function showModal(title, message, icon = '✨') {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        function switchTab(tab) {
+            const myBtn = document.getElementById('tab-my-bills-btn');
+            const giftBtn = document.getElementById('tab-gift-bills-btn');
+            const myView = document.getElementById('view-my-bills');
+            const giftView = document.getElementById('view-gift-bills');
+
+            if (tab === 'my') {
+                myBtn.className = "py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition";
+                giftBtn.className = "py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition";
+                myView.classList.remove('hidden');
+                giftView.classList.add('hidden');
+            } else {
+                giftBtn.className = "py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition";
+                myBtn.className = "py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition";
+                giftView.classList.remove('hidden');
+                myView.classList.add('hidden');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+            currentUserId = session.user.id;
+
+            await loadActiveAccount();
+            await loadMyBills();
+        });
+
+        async function loadActiveAccount() {
+            const activeAccNo = sessionStorage.getItem('active_bank_acc');
+            let query = supabaseClient.from('bank_accounts').select('*').eq('user_id', currentUserId);
+            
+            if (activeAccNo) {
+                query = query.eq('account_number', activeAccNo);
+            }
+
+            const { data } = await query.limit(1);
+            if (data && data.length > 0) {
+                activeBankAccount = data[0];
+                document.getElementById('user-silver-display').innerText = Number(activeBankAccount.silver).toLocaleString() + ' Silver';
+            } else {
+                const { data: fallback } = await supabaseClient.from('bank_accounts').select('*').eq('user_id', currentUserId).order('created_at', { ascending: true }).limit(1);
+                if (fallback && fallback.length > 0) {
+                    activeBankAccount = fallback[0];
+                    document.getElementById('user-silver-display').innerText = Number(activeBankAccount.silver).toLocaleString() + ' Silver';
+                } else {
+                    document.getElementById('user-silver-display').innerText = '0 Silver';
+                }
+            }
+        }
+
+        async function loadMyBills() {
+            const { data: bills, error } = await supabaseClient.from('bills').select('*, properties(*)').eq('user_id', currentUserId).order('created_at', { ascending: false });
+            
+            const container = document.getElementById('my-bills-container');
+            container.innerHTML = '';
+
+            if (error || !bills || bills.length === 0) {
+                container.innerHTML = `<p class="text-center text-xs text-gray-400 py-10 bg-white/80 rounded-3xl border border-brand-100">ขณะนี้ยังไม่มีรายการบิลที่ต้องชำระ</p>`;
+                return;
+            }
+
+            bills.forEach(bill => {
+                let prop = bill.properties || { name: 'ไม่ระบุสถานที่', room_code: '-' };
+                let isPaid = bill.status === 'paid';
+                let overdueText = bill.overdue_weeks > 0 ? `⚠️ ค้างชำระ ${bill.overdue_weeks} สัปดาห์` : 'ปกติ (ตามรอบสัปดาห์)';
+
+                const card = document.createElement('div');
+                card.className = "bg-white/95 backdrop-blur-md p-4 rounded-3xl border border-brand-200 shadow-sm flex items-center justify-between";
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2">
+                            <h4 class="font-bold text-xs text-brand-900">🏠 ${prop.name} (ห้อง ${prop.room_code})</h4>
+                            ${bill.overdue_weeks > 0 ? `<span class="bg-rose-100 text-rose-700 text-[9px] font-bold px-2 py-0.5 rounded-full">${overdueText}</span>` : ''}
+                        </div>
+                        <p class="text-[10px] text-gray-500">ยอดชำระ: <span class="font-extrabold text-brand-600">${parseFloat(bill.amount).toLocaleString()} Silver</span></p>
+                        <p class="text-[10px] text-brand-700 font-medium">สถานะ: ${isPaid ? '✅ ชำระแล้ว' : '⏳ รอชำระเงิน'}</p>
+                    </div>
+                    ${!isPaid ? `
+                        <button onclick="openPayModal('${bill.id}', ${bill.amount}, false)" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-sm">
+                            ชำระบิล
+                        </button>
+                    ` : `
+                        <span class="bg-gray-100 text-gray-500 font-bold text-xs px-4 py-2 rounded-xl">จ่ายแล้ว</span>
+                    `}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function searchOtherBills() {
+            let query = document.getElementById('search-bill-input').value.trim();
+            const container = document.getElementById('gift-bills-container');
+            
+            if (!query) {
+                showModal("กรุณากรอกคำค้นหา", "โปรดกรอกชื่อผู้เล่น หรือ เลขห้อง/สถานที่เพื่อค้นหา", "⚠️");
+                return;
+            }
+
+            container.innerHTML = `<p class="text-center text-xs text-gray-400 py-6">กำลังค้นหาข้อมูล...</p>`;
+
+            const { data: bills } = await supabaseClient.from('bills').select('*, properties(*), profiles(*)').neq('user_id', currentUserId).eq('status', 'unpaid');
+
+            container.innerHTML = '';
+
+            let filtered = bills ? bills.filter(b => {
+                let pName = b.profiles ? b.profiles.name.toLowerCase() : '';
+                let propName = b.properties ? b.properties.name.toLowerCase() : '';
+                let roomCode = b.properties ? b.properties.room_code.toLowerCase() : '';
+                let q = query.toLowerCase();
+                return pName.includes(q) || propName.includes(q) || roomCode.includes(q);
+            }) : [];
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-center text-xs text-gray-400 py-6">ไม่พบรายการบิลที่ตรงกับคำค้นหา "${query}"</p>`;
+                return;
+            }
+
+            filtered.forEach(bill => {
+                let prop = bill.properties || { name: 'ไม่ระบุสถานที่', room_code: '-' };
+                let ownerName = bill.profiles ? bill.profiles.name : 'ผู้เล่น';
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-2xl border border-brand-100 shadow-sm flex items-center justify-between";
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <h4 class="font-bold text-xs text-brand-900">👤 ของคุณ ${ownerName} - ${prop.name} (${prop.room_code})</h4>
+                        <p class="text-[10px] text-gray-500">ยอดบิล: <span class="font-bold text-brand-600">${parseFloat(bill.amount).toLocaleString()} Silver</span></p>
+                    </div>
+                    <button onclick="openPayModal('${bill.id}', ${bill.amount}, true)" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm">
+                        ชำระบิล 💖
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openPayModal(billId, amount, isGift) {
+            selectedBillForPay = { id: billId, amount: amount };
+            isGiftPayment = isGift;
+
+            document.getElementById('pay-modal-title').innerText = isGift ? "💖 ยืนยันการชำระบิลแทน" : "💳 ยืนยันการชำระบิล";
+            document.getElementById('pay-modal-desc').innerText = `ยอดชำระทั้งสิ้น: ${parseFloat(amount).toLocaleString()} Silver`;
+            
+            const noteBox = document.getElementById('gift-note-box');
+            if (isGift) {
+                noteBox.classList.remove('hidden');
+            } else {
+                noteBox.classList.add('hidden');
+            }
+
+            document.getElementById('pay-modal').classList.remove('hidden');
+        }
+
+        function closePayModal() {
+            document.getElementById('pay-modal').classList.add('hidden');
+            selectedBillForPay = null;
+        }
+
+        async function confirmPayBill() {
+            if (!selectedBillForPay) return;
+
+            if (!activeBankAccount) {
+                showModal("ไม่พบบัญชีธนาคาร", "กรุณาสร้างบัญชีธนาคารในหน้า Bank ก่อนทำรายการครับ", "⚠️");
+                return;
+            }
+
+            if (Number(activeBankAccount.silver) < selectedBillForPay.amount) {
+                showModal("เงินไม่พอ!", `คุณมีเงิน Silver ไม่เพียงพอสำหรับชำระบิลนี้ (ต้องการ ${selectedBillForPay.amount.toLocaleString()} Silver)`, "💰");
+                return;
+            }
+
+            const newSilver = Number(activeBankAccount.silver) - selectedBillForPay.amount;
+            await supabaseClient.from('bank_accounts').update({ silver: newSilver }).eq('id', activeBankAccount.id);
+            await supabaseClient.from('bills').update({ status: 'paid' }).eq('id', selectedBillForPay.id);
+
+            activeBankAccount.silver = newSilver;
+            document.getElementById('user-silver-display').innerText = newSilver.toLocaleString() + ' Silver';
+
+            closePayModal();
+
+            if (isGiftPayment) {
+                let note = document.getElementById('gift-note-input').value.trim();
+                showModal("ชำระบิลสำเร็จ! 💖", `คุณได้จ่ายบิลแทนเรียบร้อยแล้ว ${note ? `(แนบข้อความ: "${note}")` : ''}`, "🎁");
+                await searchOtherBills();
+            } else {
+                showModal("ชำระบิลสำเร็จ! 🎉", "คุณได้ทำการชำระค่าเช่า/ค่าน้ำ-ไฟ เรียบร้อยแล้ว", "✅");
+                await loadMyBills();
+            }
+        }
+    </script>
+</body>
+</html>
