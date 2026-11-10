@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - Learnify</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8 pb-20">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-2xl space-y-6">
+        
+        <!-- Header Nav -->
+        <div class="border-b border-brand-200 pb-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <button onclick="location.href='home.html'" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition">
+                    <span>◀ กลับหน้าหลัก</span>
+                </button>
+                <h1 class="text-xl font-extrabold text-brand-900">📚 Learnify (ศูนย์การเรียนรู้)</h1>
+            </div>
+            <!-- แสดงยอดเงินธนาคารปัจจุบัน -->
+            <div class="text-right">
+                <span id="user-silver-display" class="text-xs font-bold text-brand-700 bg-white px-3 py-1.5 rounded-2xl border border-brand-200 shadow-sm block">💰 0.00 Silver</span>
+            </div>
+        </div>
+
+        <!-- Tab Switcher -->
+        <div class="grid grid-cols-2 gap-2 bg-brand-100/80 p-1.5 rounded-2xl text-center">
+            <button id="tab-general-btn" onclick="switchTab('general')" class="py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition">General Skill (สกิลทั่วไป)</button>
+            <button id="tab-uni-btn" onclick="switchTab('university')" class="py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition">University Skill (มหาวิทยาลัย)</button>
+        </div>
+
+        <!-- Section 1: General Skill View -->
+        <div id="view-general" class="space-y-4">
+            <div class="bg-white/80 backdrop-blur-md p-4 rounded-3xl border border-brand-200 shadow-sm space-y-3">
+                <h2 class="text-sm font-bold text-brand-900">✨ สกิลทั่วไป</h2>
+                <div id="general-skills-container" class="space-y-3">
+                    <p class="text-center text-xs text-gray-400 py-6">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: University Skill View -->
+        <div id="view-university" class="hidden space-y-4">
+            <!-- คณะที่กำลังศึกษาอยู่ -->
+            <div class="bg-white/95 backdrop-blur-md p-5 rounded-3xl border-2 border-brand-300 shadow-md space-y-3">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xs font-bold text-brand-800 uppercase tracking-wider">🎓 สถานะการศึกษาปัจจุบัน</h2>
+                    <span id="uni-status-badge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-brand-100 text-brand-700">ยังไม่ได้สมัครเรียน</span>
+                </div>
+                <div id="current-enrollment-box" class="space-y-2">
+                    <p class="text-xs text-gray-500 text-center py-4">ขณะนี้ยังไม่มีข้อมูล</p>
+                </div>
+            </div>
+
+            <!-- รายชื่อคณะทั้งหมด -->
+            <div class="bg-white/80 backdrop-blur-md p-4 rounded-3xl border border-brand-200 shadow-sm space-y-3">
+                <h3 class="text-sm font-bold text-brand-900">🏛️ คณะและหลักสูตรมหาวิทยาลัยทั้งหมด</h3>
+                <div id="university-skills-container" class="space-y-3">
+                    <p class="text-center text-xs text-gray-400 py-6">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal แจ้งเตือนป๊อปอัพน่ารักๆ -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <!-- Script สำหรับเชื่อมต่อ Supabase และจัดการระบบ Learnify -->
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        let currentUserId = null;
+        let currentUserProfile = null;
+        let userBankAccounts = [];
+
+        function showModal(title, message, icon = '✨') {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        function switchTab(tab) {
+            const genBtn = document.getElementById('tab-general-btn');
+            const uniBtn = document.getElementById('tab-uni-btn');
+            const genView = document.getElementById('view-general');
+            const uniView = document.getElementById('view-university');
+
+            if (tab === 'general') {
+                genBtn.className = "py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition";
+                uniBtn.className = "py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition";
+                genView.classList.remove('hidden');
+                uniView.classList.add('hidden');
+            } else {
+                uniBtn.className = "py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition";
+                genBtn.className = "py-2.5 rounded-xl text-xs font-medium text-brand-800 hover:text-brand-600 transition";
+                uniView.classList.remove('hidden');
+                genView.classList.add('hidden');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+            currentUserId = session.user.id;
+
+            await loadUserData();
+            await loadCatalogs();
+        });
+
+        async function loadUserData() {
+            const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', currentUserId).single();
+            if (profile) currentUserProfile = profile;
+
+            const { data: banks } = await supabaseClient.from('bank_accounts').select('*').eq('user_id', currentUserId).order('created_at', { ascending: true });
+            if (banks && banks.length > 0) {
+                userBankAccounts = banks;
+                // ดึงบัญชีที่ใช้งานอยู่ (สมมติใช้บัญชีแรก หรือดึงจาก localStorage ที่เลือกไว้จากหน้า bank.html)
+                let activeAccId = localStorage.getItem('active_bank_id') || banks[0].id;
+                let activeBank = banks.find(b => b.id === activeAccId) || banks[0];
+
+                document.getElementById('user-silver-display').innerText = `💰 ${parseFloat(activeBank.silver).toLocaleString('en-US', {minimumFractionDigits: 2})} Silver`;
+            }
+        }
+
+        async function loadCatalogs() {
+            const { data: catalog, error } = await supabaseClient.from('skills_catalog').select('*').order('created_at', { ascending: true });
+            if (error) { console.error(error); return; }
+
+            await renderGeneralSkills(catalog ? catalog.filter(c => c.category === 'general') : []);
+            await renderUniversitySkills(catalog ? catalog.filter(c => c.category === 'university') : []);
+        }
+
+        async function renderGeneralSkills(skills) {
+            const container = document.getElementById('general-skills-container');
+            container.innerHTML = '';
+
+            if (!skills || skills.length === 0) {
+                container.innerHTML = '<p class="text-center text-xs text-gray-400 py-6">ขณะนี้ยังไม่มีข้อมูล</p>';
+                return;
+            }
+
+            skills.forEach(s => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-2xl border border-brand-100 shadow-sm flex items-center justify-between";
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <h4 class="font-bold text-xs text-brand-900">📖 ${s.title}</h4>
+                        <p class="text-[10px] text-gray-500">ใช้พลังงาน: <span class="font-semibold text-brand-600">${s.cost_energy}</span> | ค่าเรียน: <span class="font-semibold text-brand-600">${s.cost_silver} Silver</span></p>
+                        <p class="text-[10px] text-brand-700 font-medium">รับแต้มสกิล: +${s.reward_points} แต้ม (${s.exclusive_skill_name || 'สกิลทั่วไป'})</p>
+                    </div>
+                    <button onclick="studyGeneralSkill('${s.id}', '${s.exclusive_skill_name || s.title}', ${s.cost_silver}, ${s.cost_energy}, ${s.reward_points})" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm">
+                        เข้าเรียน
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function studyGeneralSkill(skillId, skillName, costSilver, costEnergy, rewardPoints) {
+            if (!currentUserProfile) return;
+
+            if (currentUserProfile.energy < costEnergy) {
+                showModal("พลังงานไม่พอ!", `คุณมีพลังงานเหลือ ${currentUserProfile.energy} หน่วย แต่ต้องใช้ ${costEnergy} หน่วย`, "⚡");
+                return;
+            }
+
+            // ใช้บัญชีธนาคารที่เปิดค้าง/เลือกไว้ปัจจุบัน
+            let activeAccId = localStorage.getItem('active_bank_id') || userBankAccounts[0].id;
+            let currentBank = userBankAccounts.find(b => b.id === activeAccId) || userBankAccounts[0];
+
+            if (parseFloat(currentBank.silver) < costSilver) {
+                showModal("เงินไม่พอ!", `คุณมีเงิน Silver ไม่เพียงพอสำหรับค่าเรียนนี้ (ต้องการ ${costSilver} Silver)`, "💰");
+                return;
+            }
+
+            const newSilver = parseFloat(currentBank.silver) - costSilver;
+            const newEnergy = currentUserProfile.energy - costEnergy;
+
+            await supabaseClient.from('bank_accounts').update({ silver: newSilver }).eq('id', currentBank.id);
+            await supabaseClient.from('profiles').update({ energy: newEnergy }).eq('id', currentUserId);
+
+            const { data: existingSkill } = await supabaseClient.from('user_skills').select('*').eq('user_id', currentUserId).eq('skill_name', skillName).maybeSingle();
+
+            if (existingSkill) {
+                let newPoints = existingSkill.points + rewardPoints;
+                let newLevel = existingSkill.level;
+                let reqPoints = 300 + (newLevel - 1) * 200;
+                while (newPoints >= reqPoints) {
+                    newPoints -= reqPoints;
+                    newLevel += 1;
+                    reqPoints = 300 + (newLevel - 1) * 200;
+                }
+                await supabaseClient.from('user_skills').update({ points: newPoints, level: newLevel }).eq('id', existingSkill.id);
+            } else {
+                await supabaseClient.from('user_skills').insert([{ user_id: currentUserId, skill_name: skillName, points: rewardPoints, level: 1 }]);
+            }
+
+            showModal("เรียนสำเร็จ! 🎉", `คุณได้เรียน ${skillName} เรียบร้อยแล้ว ได้รับแต้มสกิล +${rewardPoints} แต้ม`, "📚");
+            await loadUserData();
+        }
+
+        async function renderUniversitySkills(skills) {
+            const container = document.getElementById('university-skills-container');
+            container.innerHTML = '';
+
+            if (!skills || skills.length === 0) {
+                container.innerHTML = '<p class="text-center text-xs text-gray-400 py-6">ขณะนี้ยังไม่มีข้อมูล</p>';
+                return;
+            }
+
+            skills.forEach(s => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-2xl border border-brand-100 shadow-sm flex items-center justify-between";
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <h4 class="font-bold text-xs text-brand-900">🏛️ ${s.title}</h4>
+                        <p class="text-[10px] text-gray-500">ค่าเทอม/คาบ: <span class="font-semibold text-brand-600">${s.cost_silver} Silver</span> | พลังงาน: <span class="font-semibold text-brand-600">${s.cost_energy}</span></p>
+                        <p class="text-[10px] text-brand-700 font-medium">เป้าหมายจบหลักสูตร: ${s.target_sessions} คาบ | สกิลเฉพาะทาง: ${s.exclusive_skill_name}</p>
+                    </div>
+                    <button onclick="enrollUniversity('${s.id}', '${s.title}', ${s.cost_silver}, ${s.cost_energy}, ${s.target_sessions}, '${s.exclusive_skill_name}')" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm">
+                        สมัครเรียน
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function enrollUniversity(catalogId, title, costSilver, costEnergy, targetSessions, exclusiveSkill) {
+            showModal("ลงทะเบียนสำเร็จ!", `คุณได้สมัครเข้าศึกษาต่อในคณะ ${title} เรียบร้อยแล้ว สามารถกดเข้าเรียนเก็บคาบเรียนได้ทันที`, "🎓");
+        }
+    </script>
+</body>
+</html>
