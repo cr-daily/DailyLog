@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - Skill</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8 pb-20">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-2xl space-y-6">
+        
+        <!-- Header Nav -->
+        <div class="border-b border-brand-200 pb-4 flex items-center justify-between">
+            <div>
+                <button onclick="location.href='home.html'" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition mb-1">
+                    <span>◀ กลับหน้าหลัก</span>
+                </button>
+                <h1 class="text-xl font-extrabold text-brand-900">🌟 Skill (ศูนย์รวมทักษะ)</h1>
+            </div>
+            <div>
+                <button onclick="location.href='learnify.html'" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 py-2 rounded-2xl transition shadow-md">
+                    📚 ไปหน้าเรียนรู้
+                </button>
+            </div>
+        </div>
+
+        <!-- Section: รายการสกิลทั้งหมด -->
+        <div class="space-y-4">
+            <div class="bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-brand-200 shadow-sm space-y-2">
+                <h2 class="text-sm font-bold text-brand-900">🎯 รายการทักษะและความสามารถของคุณ</h2>
+                <p class="text-[11px] text-gray-500">ยิ่งเลเวลสกิลสูง จะยิ่งช่วยเพิ่มตัวคูณโบนัสรายได้เมื่อไปทำงานในแอป Career</p>
+            </div>
+
+            <!-- Container แสดงการ์ดสกิล -->
+            <div id="skills-grid-container" class="space-y-3">
+                <p class="text-center text-xs text-gray-400 py-10">กำลังโหลดข้อมูลทักษะ...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal แจ้งเตือนป๊อปอัพน่ารักๆ -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        let currentUserId = null;
+
+        function showModal(title, message, icon = '✨') {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+            currentUserId = session.user.id;
+
+            await loadUserSkillsAndCatalog();
+        });
+
+        async function loadUserSkillsAndCatalog() {
+            // 1. ดึงรายการหลักสูตรทั้งหมดจาก skills_catalog เพื่อดูว่ามีสกิลอะไรบ้างในระบบ
+            const { data: catalog, error: catError } = await supabaseClient.from('skills_catalog').select('*');
+            if (catError) { console.error(catError); return; }
+
+            // 2. ดึงข้อมูลแต้มและเลเวลของผู้เล่นจาก user_skills
+            const { data: userSkills, error: usError } = await supabaseClient.from('user_skills').select('*').eq('user_id', currentUserId);
+            if (usError) { console.error(usError); return; }
+
+            // รวบรวมชื่อสกิลทั้งหมดที่ไม่ซ้ำกันจาก catalog (ทั้ง general และ exclusive_skill_name จาก university)
+            let uniqueSkillNames = new Set();
+            if (catalog) {
+                catalog.forEach(item => {
+                    if (item.category === 'general') {
+                        uniqueSkillNames.add(item.exclusive_skill_name || item.title);
+                    } else if (item.category === 'university' && item.exclusive_skill_name) {
+                        uniqueSkillNames.add(item.exclusive_skill_name);
+                    }
+                });
+            }
+
+            const container = document.getElementById('skills-grid-container');
+            container.innerHTML = '';
+
+            if (uniqueSkillNames.size === 0) {
+                container.innerHTML = '<p class="text-center text-xs text-gray-400 py-10 bg-white/80 rounded-3xl border border-brand-100">ยังไม่มีข้อมูลสกิลในระบบ (แอดมินสามารถเพิ่มหลักสูตรได้ที่ Learnify)</p>';
+                return;
+            }
+
+            // แปลง userSkills เป็น Map เพื่อให้ค้นหาง่าย
+            const userSkillMap = {};
+            if (userSkills) {
+                userSkills.forEach(us => {
+                    userSkillMap[us.skill_name] = us;
+                });
+            }
+
+            // วนลูปแสดงการ์ดสกิลแต่ละตัว
+            uniqueSkillNames.forEach(skillName => {
+                const playerData = userSkillMap[skillName];
+                const isUnlocked = playerData && playerData.points > 0 || (playerData && playerData.level > 1);
+                
+                const level = playerData ? playerData.level : 1;
+                const points = playerData ? playerData.points : 0;
+                
+                // เกณฑ์คำนวณแต้มสำหรับเลเวลถัดไป: Lv.1->2 ใช้ 300 แต้ม, เลเวลถัดไปบวกเพิ่ม +200 แต้ม (เช่น Lv.2->3 ใช้ 500, Lv.3->4 ใช้ 700)
+                let requiredPoints = 300 + (level - 1) * 200;
+                let percent = Math.min(100, Math.floor((points / requiredPoints) * 100));
+
+                const card = document.createElement('div');
+                if (isUnlocked || (playerData && playerData.points >= 0)) {
+                    // สถานะ: ปล็อกแล้ว (Unlocked) - ธีมชมพูแดงขาวเรียบหรู
+                    card.className = "bg-white/95 backdrop-blur-md p-4 rounded-3xl border-2 border-brand-200 shadow-sm space-y-3";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-8 h-8 rounded-2xl bg-brand-100 text-brand-600 flex items-center justify-center text-sm shadow-inner">⭐</span>
+                                <h3 class="font-bold text-xs text-brand-900">${skillName}</h3>
+                            </div>
+                            <span class="bg-brand-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm">Lv. ${level}</span>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[11px] text-gray-600 font-medium">
+                                <span>แต้มสะสม</span>
+                                <span>${points} / ${requiredPoints} แต้ม</span>
+                            </div>
+                            <div class="w-full bg-brand-100 h-2.5 rounded-full overflow-hidden shadow-inner">
+                                <div class="bg-brand-600 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // สถานะ: ยังล็อกอยู่ (Locked) - สีเทาเบาๆ พร้อมไอคอนล็อก
+                    card.className = "bg-gray-50/80 backdrop-blur-md p-4 rounded-3xl border border-gray-200 shadow-sm opacity-75 space-y-2";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-8 h-8 rounded-2xl bg-gray-200 text-gray-500 flex items-center justify-center text-sm">🔒</span>
+                                <h3 class="font-bold text-xs text-gray-700">${skillName}</h3>
+                            </div>
+                            <span class="bg-gray-200 text-gray-600 text-[10px] font-bold px-3 py-1 rounded-full">Locked</span>
+                        </div>
+                        <p class="text-[10px] text-gray-400">ยังไม่ปลดล็อก กรุณาไปเรียนรู้หลักสูตรนี้ในแอป Learnify ก่อน</p>
+                    `;
+                }
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
