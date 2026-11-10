@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - Admin</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8 pb-20">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-2xl space-y-4">
+        
+        <!-- Header Nav -->
+        <div class="border-b border-brand-200 pb-3 flex items-center justify-between">
+            <div class="space-y-0.5">
+                <button onclick="location.href='home.html'" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition">
+                    <span>◀ กลับหน้าหลัก</span>
+                </button>
+                <h1 class="text-base sm:text-lg font-extrabold text-brand-950">🛡️ Admin (ระบบผู้ดูแลระบบ)</h1>
+            </div>
+            <span class="bg-brand-600 text-white text-[9px] font-bold px-2.5 py-1 rounded-full shadow-sm shrink-0">ADMIN</span>
+        </div>
+
+        <!-- Description Box -->
+        <div class="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-brand-200 shadow-sm space-y-1">
+            <h2 class="text-xs font-bold text-brand-950">⚙️ เมนูจัดการระบบหลังบ้าน</h2>
+            <p class="text-[10px] text-gray-500">เลือกโมดูลที่ต้องการจัดการข้อมูล ข้อมูลทั้งหมดจะถูกซิงค์ตรงกับฐานข้อมูล Supabase ทันที</p>
+        </div>
+
+        <!-- Admin Navigation Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            
+            <!-- จัดการ Store -->
+            <div onclick="location.href='admin-store.html'" class="bg-white/95 hover:bg-white backdrop-blur-md p-3.5 rounded-2xl border border-brand-200 shadow-sm flex items-center space-x-3 cursor-pointer transition transform hover:-translate-y-0.5">
+                <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center text-lg shadow-inner shrink-0">🛍️</div>
+                <div class="space-y-0.5">
+                    <h3 class="font-bold text-xs text-brand-950">จัดการ Store (ร้านค้า)</h3>
+                    <p class="text-[10px] text-gray-500">เพิ่ม/ลบ สินค้าทั่วไป และไอเท็มฟื้นฟูพลังงาน/อาหาร</p>
+                </div>
+            </div>
+
+            <!-- จัดการผู้เล่น (Users) -->
+            <div onclick="location.href='admin-users.html'" class="bg-white/95 hover:bg-white backdrop-blur-md p-3.5 rounded-2xl border border-brand-200 shadow-sm flex items-center space-x-3 cursor-pointer transition transform hover:-translate-y-0.5">
+                <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center text-lg shadow-inner shrink-0">👥</div>
+                <div class="space-y-0.5">
+                    <h3 class="font-bold text-xs text-brand-950">จัดการผู้เล่น (Users)</h3>
+                    <p class="text-[10px] text-gray-500">ตรวจสอบรายชื่อและข้อมูลโปรไฟล์ของผู้เล่นในระบบ</p>
+                </div>
+            </div>
+
+            <!-- จัดการการเรียนรู้ (Learnify) -->
+            <div onclick="location.href='admin-skill.html'" class="bg-white/95 hover:bg-white backdrop-blur-md p-3.5 rounded-2xl border border-brand-200 shadow-sm flex items-center space-x-3 cursor-pointer transition transform hover:-translate-y-0.5">
+                <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center text-lg shadow-inner shrink-0">📚</div>
+                <div class="space-y-0.5">
+                    <h3 class="font-bold text-xs text-brand-950">จัดการ Learnify (การเรียนรู้)</h3>
+                    <p class="text-[10px] text-gray-500">เพิ่ม/ลบ หลักสูตร General Skill และ University Skill</p>
+                </div>
+            </div>
+
+            <!-- จัดการงาน (Career) -->
+            <div onclick="location.href='admin-career.html'" class="bg-white/95 hover:bg-white backdrop-blur-md p-3.5 rounded-2xl border border-brand-200 shadow-sm flex items-center space-x-3 cursor-pointer transition transform hover:-translate-y-0.5">
+                <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center text-lg shadow-inner shrink-0">💼</div>
+                <div class="space-y-0.5">
+                    <h3 class="font-bold text-xs text-brand-950">จัดการ Career (ระบบงาน)</h3>
+                    <p class="text-[10px] text-gray-500">จัดการรายชื่องานหลักประจำ และงานเสริมรับจ้างทั่วไป</p>
+                </div>
+            </div>
+
+            <!-- จัดการที่อยู่อาศัย (Estate) -->
+            <div onclick="location.href='admin-estate.html'" class="bg-white/95 hover:bg-white backdrop-blur-md p-3.5 rounded-2xl border border-brand-200 shadow-sm flex items-center space-x-3 cursor-pointer transition transform hover:-translate-y-0.5 sm:col-span-2">
+                <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center text-lg shadow-inner shrink-0">🏡</div>
+                <div class="space-y-0.5">
+                    <h3 class="font-bold text-xs text-brand-950">จัดการ Estate (ที่อยู่อาศัย)</h3>
+                    <p class="text-[10px] text-gray-500">สร้างบ้าน คอนโด หรืออพาร์ตเมนต์ พร้อมระบุราคาและจำนวนยูนิตห้องพัก</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Modal แจ้งเตือนป๊อปอัพน่ารักๆ -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <!-- Script ตรวจสอบสิทธิ์ Admin -->
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        function showModal(title, message, icon = '✨', callback = null) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+            
+            window.modalCallback = callback;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { 
+                modal.classList.add('hidden'); 
+                if (window.modalCallback) window.modalCallback();
+            }, 200);
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { 
+                window.location.href = 'index.html'; 
+                return; 
+            }
+
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+
+            if (error || !profile || profile.role !== 'admin') {
+                showModal("Access Denied", "คุณไม่มีสิทธิ์เข้าถึงหน้าผู้ดูแลระบบนี้", "🚫", () => {
+                    window.location.href = 'home.html';
+                });
+            }
+        });
+    </script>
+</body>
+</html>
