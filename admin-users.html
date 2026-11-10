@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - Admin Users Management</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 300: '#fda4af',
+                            400: '#fb7185', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c',
+                            800: '#9f1239', 900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }</style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8 pb-20">
+
+    <div class="w-full max-w-2xl space-y-4">
+        
+        <!-- Header Nav -->
+        <div class="border-b border-brand-200 pb-3 flex items-center justify-between">
+            <div class="space-y-0.5">
+                <button onclick="location.href='admin.html'" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition">
+                    <span>◀ กลับหน้าแดชบอร์ด</span>
+                </button>
+                <h1 class="text-base sm:text-lg font-extrabold text-brand-950">👥 จัดการผู้เล่น (Users Directory)</h1>
+            </div>
+            <span class="bg-brand-600 text-white text-[9px] font-bold px-2.5 py-1 rounded-full shadow-sm">ADMIN</span>
+        </div>
+
+        <!-- Description Box -->
+        <div class="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-brand-200 shadow-sm space-y-1">
+            <h2 class="text-xs font-bold text-brand-950">📋 รายชื่อผู้เล่นทั้งหมดในระบบ</h2>
+            <p class="text-[10px] text-gray-500">กดที่การ์ดผู้เล่นเพื่อตรวจสอบข้อมูลโปรไฟล์เชิงลึก (หน้านี้สำหรับดูข้อมูลเท่านั้น)</p>
+        </div>
+
+        <!-- Users List Container -->
+        <div id="users-container" class="space-y-3">
+            <p class="text-center text-xs text-gray-400 py-10">กำลังโหลดรายชื่อผู้เล่น...</p>
+        </div>
+
+    </div>
+
+    <!-- Modal ดูรายละเอียดผู้เล่น -->
+    <div id="user-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 space-y-4 text-center transform transition-all scale-95 opacity-0 duration-200" id="user-modal-box">
+            <img id="modal-avatar" src="" class="w-20 h-20 rounded-full mx-auto object-cover border-2 border-brand-200 shadow-inner">
+            <div class="space-y-0.5">
+                <h3 id="modal-name" class="text-base font-bold text-brand-950">-</h3>
+                <p id="modal-custom-id" class="text-xs text-brand-600 font-semibold">-</p>
+            </div>
+            <div class="text-left text-xs bg-brand-50 p-3.5 rounded-2xl space-y-1.5 text-gray-700 shadow-inner">
+                <p><b>ชื่อเต็ม:</b> <span id="modal-fullname">-</span></p>
+                <p><b>อีเมล:</b> <span id="modal-email">-</span></p>
+                <p><b>วันเกิด:</b> <span id="modal-birthdate">-</span></p>
+                <p><b>สิทธิ์ผู้ใช้:</b> <span id="modal-role">-</span></p>
+                <p><b>พลังงาน (Energy):</b> <span id="modal-energy">-</span></p>
+                <p><b>อาหาร (Food):</b> <span id="modal-food">-</span></p>
+            </div>
+            <button onclick="closeUserModal()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-md">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- Modal แจ้งเตือนป๊อปอัพทั่วไป -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        function showModal(title, message, icon = '✨', cb = null) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+            window.modalCallback = cb;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); if(window.modalCallback) window.modalCallback(); }, 200);
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+            
+            // ตรวจสอบสิทธิ์ Admin
+            const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', session.user.id).single();
+            if (!profile || profile.role !== 'admin') { 
+                showModal("Access Denied", "คุณไม่มีสิทธิ์เข้าถึงหน้าผู้ดูแลระบบนี้", "🚫", () => {
+                    window.location.href = 'home.html';
+                });
+                return;
+            }
+
+            await loadUsers();
+        });
+
+        async function loadUsers() {
+            const { data: users, error } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
+            const container = document.getElementById('users-container');
+            container.innerHTML = '';
+
+            if (error || !users || users.length === 0) {
+                container.innerHTML = '<p class="text-center text-xs text-gray-400 py-6">ไม่พบรายชื่อผู้เล่นในระบบ</p>';
+                return;
+            }
+
+            users.forEach(u => {
+                container.innerHTML += `
+                    <div onclick='openUserModal(${JSON.stringify(u)})' class="bg-white/95 hover:bg-white backdrop-blur-md p-3.5 rounded-2xl border border-brand-200 shadow-sm flex items-center justify-between cursor-pointer hover:border-brand-400 transition transform hover:-translate-y-0.5">
+                        <div class="flex items-center space-x-3">
+                            <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" class="w-11 h-11 rounded-full object-cover border-2 border-brand-200 shadow-inner">
+                            <div>
+                                <h4 class="font-bold text-xs text-brand-950">${u.name} <span class="text-[10px] text-brand-600 font-semibold">(ID: #${u.custom_id})</span></h4>
+                                <p class="text-[10px] text-gray-500">อีเมล: ${u.email}</p>
+                            </div>
+                        </div>
+                        <span class="text-[9px] font-bold px-2.5 py-1 rounded-full shadow-sm ${u.role === 'admin' ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-600'}">
+                            ${u.role.toUpperCase()}
+                        </span>
+                    </div>
+                `;
+            });
+        }
+
+        function openUserModal(u) {
+            document.getElementById('modal-avatar').src = u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+            document.getElementById('modal-name').innerText = u.name;
+            document.getElementById('modal-custom-id').innerText = `ID: #${u.custom_id}`;
+            document.getElementById('modal-fullname').innerText = u.fullname || '-';
+            document.getElementById('modal-email').innerText = u.email;
+            document.getElementById('modal-birthdate').innerText = u.birthdate || 'ไม่ระบุ';
+            document.getElementById('modal-role').innerText = u.role.toUpperCase();
+            document.getElementById('modal-energy').innerText = `${u.energy} / ${u.max_energy}`;
+            document.getElementById('modal-food').innerText = `${u.food} / ${u.max_food}`;
+            
+            const modal = document.getElementById('user-modal');
+            const box = document.getElementById('user-modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+
+        function closeUserModal() {
+            const modal = document.getElementById('user-modal');
+            const box = document.getElementById('user-modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
+        }
+    </script>
+</body>
+</html>
