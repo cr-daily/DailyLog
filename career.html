@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - Career</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .balance-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(255, 77, 109, 0.05);
+        }
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 12px;
+            border: none;
+            background: #fff0f3;
+            color: var(--dark-red);
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--primary-pink), var(--dark-red));
+            color: white;
+            box-shadow: 0 4px 15px rgba(201, 24, 74, 0.3);
+        }
+        .content-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(255, 77, 109, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container" style="padding: 20px;">
+        <!-- หัวข้อหลัก -->
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <a href="home.html" style="text-decoration: none; color: var(--dark-red); font-weight: bold; font-size: 1rem;">← กลับหน้าหลัก</a>
+            <h2 style="margin: 0 auto; color: var(--dark-red); font-size: 1.2rem;">💼 Career (ระบบการทำงาน)</h2>
+        </div>
+
+        <!-- 1) แถบแสดงยอดเงินในบัญชีปัจจุบัน (วางตำแหน่งเหมือนหน้า Estate) -->
+        <div class="balance-card">
+            <span style="font-size: 0.9rem; font-weight: 500; color: #555;">💰 เงินในบัญชีปัจจุบัน</span>
+            <span id="user-silver-balance" style="font-size: 1.1rem; font-weight: bold; color: var(--dark-red);">0 Silver</span>
+        </div>
+
+        <!-- หมวดหมู่แท็บ -->
+        <div class="tab-container">
+            <button class="tab-btn active" id="btn-main-tab" onclick="switchCareerTab('main')">👔 งานหลัก (Main Job)</button>
+            <button class="tab-btn" id="btn-side-tab" onclick="switchCareerTab('side')">⚡ งานเสริม (Side Job)</button>
+        </div>
+
+        <!-- พื้นที่แสดงเนื้อหา -->
+        <div id="career-content-area">กำลังโหลดข้อมูล...</div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js'
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) window.location.href = 'index.html';
+
+        let currentTab = 'main';
+        let timerInterval = null;
+
+        async function fetchBalance() {
+            const { data: accounts } = await supabase
+                .from('bank_accounts')
+                .select('silver')
+                .eq('user_id', session.user.id)
+                .limit(1);
+            
+            if (accounts && accounts.length > 0) {
+                document.getElementById('user-silver-balance').innerText = `${accounts[0].silver.toLocaleString()} Silver`;
+            }
+        }
+
+        window.switchCareerTab = (tab) => {
+            currentTab = tab;
+            if (timerInterval) clearInterval(timerInterval);
+
+            document.getElementById('btn-main-tab').className = tab === 'main' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('btn-side-tab').className = tab === 'side' ? 'tab-btn active' : 'tab-btn';
+
+            if (tab === 'main') loadMainJobView();
+            else loadSideJobView();
+        };
+
+        // --- ระบบงานหลัก (Main Job) ---
+        async function loadMainJobView() {
+            const container = document.getElementById('career-content-area');
+            container.innerHTML = '<p style="text-align: center; color: #777;">กำลังโหลดข้อมูลงานหลัก...</p>';
+
+            // เช็คว่าผู้ใช้มีงานหลักที่ทำอยู่แล้วหรือยัง (ดึงจาก user_careers ที่เป็นประเภท main)
+            const { data: userJob } = await supabase
+                .from('user_careers')
+                .select('*, careers_catalog(*)')
+                .eq('user_id', session.user.id)
+                .single();
+
+            // เช็ครายชื่ออาชีพหลักทั้งหมดในระบบ
+            const { data: catalog } = await supabase
+                .from('careers_catalog')
+                .select('*')
+                .eq('type', 'main');
+
+            if (userJob && userJob.careers_catalog && userJob.careers_catalog.type === 'main') {
+                // แสดงหน้าจอเมื่อมีงานหลักประจำอยู่แล้ว
+                const job = userJob.careers_catalog;
+                container.innerHTML = `
+                    <div class="content-card" style="text-align: center;">
+                        <div style="font-size: 45px; margin-bottom: 10px;">👔</div>
+                        <h3 style="color: var(--dark-red); margin-bottom: 5px;">${job.title}</h3>
+                        <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">รายได้ประจำวัน: <b>${job.salary_or_reward} Silver</b> | พลังงานที่ใช้: ${job.energy_cost} ⚡</p>
+                        
+                        <div style="background: var(--light-pink); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                            <div style="font-size: 0.85rem; color: #555; margin-bottom: 5px;">เงินเดือนสะสมรอรับเข้าธนาคาร</div>
+                            <div style="font-size: 1.4rem; font-weight: bold; color: var(--dark-red); margin-bottom: 10px;">${userJob.accrued_salary || 0} Silver</div>
+                            <button onclick="claimMainSalary('${userJob.id}', ${userJob.accrued_salary || 0})" class="btn-primary" style="margin-bottom: 8px;">📥 กดรับเงินเข้าธนาคาร</button>
+                        </div>
+
+                        <button onclick="resignJob('${userJob.id}')" style="background: none; border: none; color: #ff3333; font-size: 0.85rem; cursor: pointer; text-decoration: underline;">❌ ลาออกจากงานหลักนี้</button>
+                    </div>
+                `;
+            } else {
+                // แสดงรายชื่อให้เลือกสมัครงานหลัก
+                let html = `
+                    <div class="content-card">
+                        <h4 style="color: var(--dark-red); margin-bottom: 10px; font-size: 0.95rem;">📋 เลือกสมัครงานหลักประจำ</h4>
+                `;
+                if (catalog && catalog.length > 0) {
+                    catalog.forEach(c => {
+                        html += `
+                            <div style="background: var(--light-pink); padding: 12px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: bold; font-size: 0.9rem;">${c.title}</div>
+                                    <div style="font-size: 0.8rem; color: #666;">รายได้: ${c.salary_or_reward} Silver/วัน</div>
+                                </div>
+                                <button onclick="applyMainJob('${c.id}')" style="background: var(--primary-pink); color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">สมัครงานนี้</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += `<p style="text-align: center; color: #777; font-size: 0.9rem;">ยังไม่มีข้อมูลอาชีพหลักในระบบ (แอดมินสามารถเพิ่มได้ในหน้า Admin)</p>`;
+                }
+                html += `</div>`;
+                container.innerHTML = html;
+            }
+        }
+
+        window.applyMainJob = async (careerId) => {
+            const { error } = await supabase.from('user_careers').insert([{
+                user_id: session.user.id,
+                career_id: careerId,
+                job_level: 1,
+                accrued_salary: 1000 // ยอดเงินสะสมเริ่มต้นทดลอง
+            }]);
+            if (error) window.showPopup('ไม่สามารถสมัครงานได้', 'error');
+            else {
+                window.showPopup('สมัครงานหลักสำเร็จ!');
+                loadMainJobView();
+            }
+        };
+
+        window.resignJob = async (userCareerId) => {
+            const { error } = await supabase.from('user_careers').delete().eq('id', userCareerId);
+            if (error) window.showPopup('เกิดข้อผิดพลาดในการลาออก', 'error');
+            else {
+                window.showPopup('ลาอกจากงานเรียบร้อยแล้ว');
+                loadMainJobView();
+            }
+        };
+
+        window.claimMainSalary = async (userCareerId, amount) => {
+            if (amount <= 0) {
+                window.showPopup('ยังไม่มีเงินเดือนสะสมให้กดรับ', 'error');
+                return;
+            }
+            // ดึงบัญชีหลักเพื่อเติมเงิน
+            const { data: accounts } = await supabase.from('bank_accounts').select('*').eq('user_id', session.user.id).limit(1);
+            if (accounts && accounts.length > 0) {
+                await supabase.from('bank_accounts').update({ silver: accounts[0].silver + amount }).eq('id', accounts[0].id);
+                await supabase.from('user_careers').update({ accrued_salary: 0 }).eq('id', userCareerId);
+                window.showPopup(`รับเงินเดือนเข้าธนาคารสำเร็จ ${amount} Silver!`);
+                fetchBalance();
+                loadMainJobView();
+            }
+        };
+
+
+        // --- ระบบงานเสริม (Side Job) ---
+        async function loadSideJobView() {
+            const container = document.getElementById('career-content-area');
+            const { data: catalog } = await supabase.from('careers_catalog').select('*').eq('type', 'side');
+
+            let html = `
+                <div class="content-card" style="margin-bottom: 15px;">
+                    <h4 style="color: var(--dark-red); margin-bottom: 10px; font-size: 0.95rem;">⚡ งานเสริมที่กำลังทำ</h4>
+                    <div id="active-side-job-box" style="font-size: 0.85rem; color: #666;">ไม่มีงานเสริมที่กำลังดำเนินการอยู่</div>
+                </div>
+                <div class="content-card">
+                    <h4 style="color: var(--dark-red); margin-bottom: 10px; font-size: 0.95rem;">🚀 เลือกรับงานเสริม</h4>
+            `;
+
+            if (catalog && catalog.length > 0) {
+                catalog.forEach(c => {
+                    html += `
+                        <div style="background: var(--light-pink); padding: 12px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: bold; font-size: 0.9rem;">${c.title}</div>
+                                <div style="font-size: 0.8rem; color: #666;">รางวัล: ${c.salary_or_reward} Silver | ใช้เวลา: ${c.duration_minutes || 1} นาที</div>
+                            </div>
+                            <button onclick="startSideJob('${c.title}', ${c.salary_or_reward}, ${c.duration_minutes || 1})" style="background: var(--primary-pink); color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">เริ่มทำ</button>
+                        </div>
+                    `;
+                });
+            } else {
+                html += `<p style="text-align: center; color: #777; font-size: 0.9rem;">ยังไม่มีข้อมูลงานเสริมในระบบ</p>`;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+            checkActiveSideJob();
+        }
+
+        window.startSideJob = (title, reward, durationMins) => {
+            const endTime = new Date().getTime() + durationMins * 60 * 1000;
+            localStorage.setItem('active_side_job', JSON.stringify({ title, reward, endTime }));
+            window.showPopup(`เริ่มทำงานเสริม "${title}" สำเร็จ!`);
+            checkActiveSideJob();
+        };
+
+        function checkActiveSideJob() {
+            const box = document.getElementById('active-side-job-box');
+            if (!box) return;
+
+            const savedJob = localStorage.getItem('active_side_job');
+            if (!savedJob) {
+                box.innerHTML = 'ไม่มีงานเสริมที่กำลังดำเนินการอยู่';
+                return;
+            }
+
+            const job = JSON.parse(savedJob);
+
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                const now = new Date().getTime();
+                const distance = job.endTime - now;
+
+                if (distance < 0) {
+                    clearInterval(timerInterval);
+                    box.innerHTML = `
+                        <div style="font-weight: bold; color: var(--dark-red); margin-bottom: 5px;">✨ งานเสร็จสิ้น: ${job.title}</div>
+                        <div style="font-size: 0.8rem; margin-bottom: 10px; color: #555;">รางวัลที่ได้รับ: ${job.reward} Silver</div>
+                        <button onclick="claimSideJobReward(${job.reward})" class="btn-primary" style="padding: 8px;">รับรางวัลเข้าธนาคาร</button>
+                    `;
+                } else {
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    box.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 3px;">⏳ กำลังทำ: ${job.title}</div>
+                        <div style="font-size: 0.95rem; color: var(--dark-red); font-weight: bold;">เวลาถอยหลัง: ${minutes} นาที ${seconds} วินาที</div>
+                    `;
+                }
+            }, 1000);
+        }
+
+        window.claimSideJobReward = async (reward) => {
+            const { data: accounts } = await supabase.from('bank_accounts').select('*').eq('user_id', session.user.id).limit(1);
+            if (accounts && accounts.length > 0) {
+                await supabase.from('bank_accounts').update({ silver: accounts[0].silver + reward }).eq('id', accounts[0].id);
+                localStorage.removeItem('active_side_job');
+                window.showPopup(`รับรางวัลงานเสริมสำเร็จ +${reward} Silver!`);
+                fetchBalance();
+                loadSideJobView();
+            }
+        };
+
+        fetchBalance();
+        loadMainJobView();
+    </script>
+</body>
+</html>
