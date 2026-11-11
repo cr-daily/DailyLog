@@ -157,7 +157,7 @@
             <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
             <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
             <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
-            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-700 transition w-full shadow-md">ตกลง</button>
         </div>
     </div>
 
@@ -286,9 +286,10 @@
         }
 
         function updateBarsUI() {
-            const energy = userProfile.energy || 100;
+            // แก้ไขตรงนี้: ตรวจสอบไม่ให้มองค่า 0 เป็นค่าว่าง เพื่อให้แสดงผลตามข้อมูลจริงใน Database
+            const energy = (userProfile.energy !== undefined && userProfile.energy !== null) ? userProfile.energy : 100;
             const maxEnergy = userProfile.max_energy || 100;
-            const food = userProfile.food || 100;
+            const food = (userProfile.food !== undefined && userProfile.food !== null) ? userProfile.food : 100;
             const maxFood = userProfile.max_food || 100;
 
             const energyLv = Math.floor((maxEnergy - 100) / 25) + 1;
