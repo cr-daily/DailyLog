@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Log - Admin Career Management</title>
+    
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e11d48">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="https://res.cloudinary.com/dp6k1rwj/image/upload/v1794345597/wmremove-transformed.jpg">
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 300: '#fda4af',
+                            400: '#fb7185', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c',
+                            800: '#9f1239', 900: '#4c0519',
+                        }
+                    },
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #fff5f5 0%, #ffe4e6 100%); color: #4c0519; min-height: 100vh; }</style>
+</head>
+<body class="flex flex-col items-center justify-start p-4 md:p-8 pb-20">
+
+    <div class="w-full max-w-2xl space-y-4">
+        
+        <!-- Header Nav -->
+        <div class="border-b border-brand-200 pb-3 flex items-center justify-between">
+            <div class="space-y-0.5">
+                <button onclick="location.href='admin.html'" class="inline-flex items-center space-x-1 text-xs font-bold text-brand-600 hover:text-brand-800 transition">
+                    <span>◀ กลับหน้าแดชบอร์ด</span>
+                </button>
+                <h1 class="text-base sm:text-lg font-extrabold text-brand-950">💼 จัดการ Career (งานหลักและงานเสริม)</h1>
+            </div>
+            <span class="bg-brand-600 text-white text-[9px] font-bold px-2.5 py-1 rounded-full shadow-sm">ADMIN</span>
+        </div>
+
+        <!-- ฟอร์มเพิ่มอาชีพใหม่ -->
+        <div class="bg-white/95 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-brand-200 shadow-sm space-y-3.5">
+            <h2 class="text-xs sm:text-sm font-bold text-brand-950">➕ เพิ่มอาชีพใหม่ในระบบ</h2>
+            <div class="space-y-3">
+                
+                <!-- ตัวเลือกประเภทงาน -->
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700">ประเภทงาน</label>
+                    <div class="grid grid-cols-2 gap-2 mt-1">
+                        <button type="button" id="type-main-btn" onclick="selectCareerType('main')" class="py-2.5 px-3 rounded-2xl text-xs font-bold bg-brand-600 text-white shadow-sm transition flex items-center justify-center space-x-1">
+                            <span>👔 งานหลัก (Main Job)</span>
+                        </button>
+                        <button type="button" id="type-side-btn" onclick="selectCareerType('side')" class="py-2.5 px-3 rounded-2xl text-xs font-medium bg-brand-50 text-brand-800 border border-brand-200 hover:bg-brand-100 transition flex items-center justify-center space-x-1">
+                            <span>⚡ งานเสริม (Side Job)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700">ชื่ออาชีพ</label>
+                    <input type="text" id="career-title" placeholder="เช่น ศัลยแพทย์, พนักงานพาร์ทไทม์" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label id="salary-label" class="text-[11px] font-bold text-gray-700">รายได้ (Silver ต่อวัน/งาน)</label>
+                        <input type="number" id="career-salary" placeholder="20000" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-700">พลังงานที่ใช้ (Energy Cost)</label>
+                        <input type="number" id="career-energy" placeholder="30" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-700">อาหารที่ใช้ (Food Cost)</label>
+                        <input type="number" id="career-food" placeholder="20" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+
+                <!-- ช่องเฉพาะงานเสริม (ระยะเวลาเป็นนาที) -->
+                <div id="duration-box" class="hidden">
+                    <label class="text-[11px] font-bold text-gray-700">ระยะเวลาทำงานเสริม (นาที)</label>
+                    <input type="number" id="career-duration" placeholder="30" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500" value="30">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-700">ทักษะที่ต้องใช้ (Required Skill)</label>
+                        <select id="career-required-skill" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500 bg-white">
+                            <option value="">-- ไม่กำหนดทักษะ --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-700">เลเวลสกิลขั้นต่ำ</label>
+                        <input type="number" id="career-required-level" placeholder="1" class="w-full px-4 py-2.5 rounded-xl border border-brand-200 text-xs focus:outline-none focus:border-brand-500" value="1">
+                    </div>
+                </div>
+
+                <button onclick="addNewCareerCatalog()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-3 rounded-xl transition shadow-md">
+                    บันทึกอาชีพ (Save Career)
+                </button>
+            </div>
+        </div>
+
+        <!-- รายการอาชีพทั้งหมดในระบบ -->
+        <div class="bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-brand-200 shadow-sm space-y-3">
+            <h2 class="text-xs sm:text-sm font-bold text-brand-950">📋 รายชื่ออาชีพที่มีในระบบปัจจุบัน</h2>
+            <div id="careers-catalog-container" class="space-y-3">
+                <p class="text-center text-xs text-gray-400 py-6">กำลังโหลดข้อมูลอาชีพ...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal แจ้งเตือนป๊อปอัพน่ารักๆ -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border-2 border-brand-200 max-w-sm w-full p-6 text-center transform transition-all scale-95 opacity-0 duration-200" id="modal-box">
+            <div id="modal-icon" class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">✨</div>
+            <h3 id="modal-title" class="text-lg font-bold text-brand-900 mb-2">แจ้งเตือนระบบ</h3>
+            <p id="modal-message" class="text-sm text-gray-600 mb-6">ข้อความแจ้งเตือน...</p>
+            <button onclick="closeModal()" class="bg-brand-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition w-full shadow-md">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://alyifbjuugctlqiwcrny.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_79rKUSpeFSZbPtUpEPtiEw_t_saz9Hk';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        let selectedCareerType = 'main';
+
+        function showModal(title, message, icon = '✨', cb = null) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            modal.classList.remove('hidden');
+            setTimeout(() => { box.classList.remove('scale-95', 'opacity-0'); box.classList.add('scale-100', 'opacity-100'); }, 10);
+            window.modalCallback = cb;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-box');
+            box.classList.remove('scale-100', 'opacity-100'); box.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); if(window.modalCallback) window.modalCallback(); }, 200);
+        }
+
+        function selectCareerType(type) {
+            selectedCareerType = type;
+            const mainBtn = document.getElementById('type-main-btn');
+            const sideBtn = document.getElementById('type-side-btn');
+            const durationBox = document.getElementById('duration-box');
+            const salaryLabel = document.getElementById('salary-label');
+
+            if (type === 'main') {
+                mainBtn.className = "py-2.5 px-3 rounded-2xl text-xs font-bold bg-brand-600 text-white shadow-sm transition flex items-center justify-center space-x-1";
+                sideBtn.className = "py-2.5 px-3 rounded-2xl text-xs font-medium bg-brand-50 text-brand-800 border border-brand-200 hover:bg-brand-100 transition flex items-center justify-center space-x-1";
+                durationBox.classList.add('hidden');
+                salaryLabel.innerText = "รายได้ (Silver ต่อวัน)";
+            } else {
+                sideBtn.className = "py-2.5 px-3 rounded-2xl text-xs font-bold bg-brand-600 text-white shadow-sm transition flex items-center justify-center space-x-1";
+                mainBtn.className = "py-2.5 px-3 rounded-2xl text-xs font-medium bg-brand-50 text-brand-800 border border-brand-200 hover:bg-brand-100 transition flex items-center justify-center space-x-1";
+                durationBox.classList.remove('hidden');
+                salaryLabel.innerText = "รายได้ (Silver ต่อครั้ง)";
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'index.html'; return; }
+            
+            const { data: profile } = await supabaseClient.from('profiles').select('role').eq('id', session.user.id).single();
+            if (!profile || profile.role !== 'admin') { 
+                showModal("Access Denied", "คุณไม่มีสิทธิ์เข้าถึงหน้าผู้ดูแลระบบนี้", "🚫", () => {
+                    window.location.href = 'home.html';
+                });
+                return;
+            }
+
+            await loadSkillsDropdown();
+            await loadCareersCatalog();
+        });
+
+        async function loadSkillsDropdown() {
+            const { data: catalog } = await supabaseClient.from('skills_catalog').select('title, exclusive_skill_name');
+            const selectDropdown = document.getElementById('career-required-skill');
+            selectDropdown.innerHTML = '<option value="">-- ไม่กำหนดทักษะ --</option>';
+
+            if (catalog) {
+                const uniqueSkills = new Set();
+                catalog.forEach(s => {
+                    if (s.title) uniqueSkills.add(s.title);
+                    if (s.exclusive_skill_name) uniqueSkills.add(s.exclusive_skill_name);
+                });
+
+                uniqueSkills.forEach(skillName => {
+                    selectDropdown.innerHTML += `<option value="${skillName}">${skillName}</option>`;
+                });
+            }
+        }
+
+        async function loadCareersCatalog() {
+            const { data: careers, error } = await supabaseClient.from('careers_catalog').select('*').order('created_at', { ascending: false });
+            const container = document.getElementById('careers-catalog-container');
+            container.innerHTML = '';
+
+            if (error || !careers || careers.length === 0) {
+                container.innerHTML = '<p class="text-center text-xs text-gray-400 py-6">ยังไม่มีข้อมูลอาชีพในระบบ</p>';
+                return;
+            }
+
+            careers.forEach(c => {
+                const foodCostVal = c.food_cost !== undefined && c.food_cost !== null ? c.food_cost : 0;
+                container.innerHTML += `
+                    <div class="bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-brand-100 shadow-sm flex items-center justify-between">
+                        <div class="space-y-0.5">
+                            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm ${c.type === 'main' ? 'bg-brand-50 text-brand-700' : 'bg-purple-100 text-purple-700'}">
+                                ${c.type === 'main' ? 'MAIN JOB (งานหลัก)' : 'SIDE JOB (งานเสริม)'}
+                            </span>
+                            <h4 class="font-bold text-xs text-brand-950 mt-1">${c.title}</h4>
+                            <p class="text-[10px] text-gray-500">รายได้: <span class="font-semibold text-brand-600">${Number(c.salary_or_reward).toLocaleString()} Silver</span> | พลังงาน: ${c.energy_cost} | อาหาร: ${foodCostVal} ${c.type === 'side' ? `| เวลา: ${c.duration_minutes} นาที` : ''}</p>
+                            ${c.required_skill_name ? `<p class="text-[10px] text-brand-600 font-semibold">ทักษะที่ต้องการ: ${c.required_skill_name} (Lv.${c.required_skill_level})</p>` : ''}
+                        </div>
+                        <button onclick="deleteCareerCatalog('${c.id}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs px-3 py-1.5 rounded-xl transition shadow-sm shrink-0">ลบ</button>
+                    </div>
+                `;
+            });
+        }
+
+        async function addNewCareerCatalog() {
+            const title = document.getElementById('career-title').value.trim();
+            const salaryOrReward = parseFloat(document.getElementById('career-salary').value);
+            const energyCost = parseInt(document.getElementById('career-energy').value) || 0;
+            const foodCost = parseInt(document.getElementById('career-food').value) || 0;
+            const durationMinutes = selectedCareerType === 'side' ? parseInt(document.getElementById('career-duration').value) : 0;
+            const requiredSkillName = document.getElementById('career-required-skill').value;
+            const requiredSkillLevel = parseInt(document.getElementById('career-required-level').value) || 1;
+
+            if (!title || isNaN(salaryOrReward)) {
+                showModal("กรอกข้อมูลไม่ครบ", "กรุณากรอกชื่ออาชีพและรายได้ให้ครบถ้วนถูกต้อง", "⚠️");
+                return;
+            }
+
+            const { error } = await supabaseClient.from('careers_catalog').insert([{
+                title,
+                type: selectedCareerType,
+                salary_or_reward: salaryOrReward,
+                energy_cost: energyCost,
+                food_cost: foodCost,
+                duration_minutes: durationMinutes,
+                required_skill_name: requiredSkillName || null,
+                required_skill_level: requiredSkillLevel
+            }]);
+
+            if (error) { 
+                showModal("เกิดข้อผิดพลาด", error.message, "❌"); 
+                return; 
+            }
+
+            showModal("บันทึกสำเร็จ! 🎉", "เพิ่มอาชีพใหม่เข้าสู่ระบบเรียบร้อยแล้ว", "💼", () => {
+                document.getElementById('career-title').value = '';
+                document.getElementById('career-salary').value = '';
+                document.getElementById('career-energy').value = '';
+                document.getElementById('career-food').value = '';
+                document.getElementById('career-duration').value = '30';
+                document.getElementById('career-required-skill').value = '';
+                document.getElementById('career-required-level').value = '1';
+                loadCareersCatalog();
+            });
+        }
+
+        async function deleteCareerCatalog(id) {
+            const { error } = await supabaseClient.from('careers_catalog').delete().eq('id', id);
+            if (error) { 
+                showModal("เกิดข้อผิดพลาด", error.message, "❌"); 
+                return; 
+            }
+            showModal("ลบอาชีพสำเร็จ", "ลบข้อมูลอาชีพออกจากระบบแล้ว", "🗑️", () => loadCareersCatalog());
+        }
+    </script>
+</body>
+</html>
