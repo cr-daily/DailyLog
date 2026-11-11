@@ -182,7 +182,7 @@
             </div>
             <div class="flex space-x-2 pt-2">
                 <button onclick="closeCreatePostModal()" class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-300 transition">ยกเลิก</button>
-                <button id="submit-post-btn" onclick="submitPost()" class="flex-1 bg-brand-600 text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-brand-700 transition shadow-md">โพสต์</button>
+                <button id="submit-post-btn" onclick="submitPost()" class="flex-1 bg-brand-600 text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-700 transition shadow-md">โพสต์</button>
             </div>
         </div>
     </div>
@@ -202,7 +202,7 @@
             </div>
             <div class="flex space-x-2 pt-2">
                 <button onclick="closeCreateGroupModal()" class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-300 transition">ยกเลิก</button>
-                <button onclick="submitCreateGroup()" class="flex-1 bg-brand-600 text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-brand-700 transition shadow-md">สร้างกลุ่ม</button>
+                <button onclick="submitCreateGroup()" class="flex-1 bg-brand-600 text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-gray-700 transition shadow-md">สร้างกลุ่ม</button>
             </div>
         </div>
     </div>
@@ -416,21 +416,19 @@
 
             const finalTotalTarget = (realLikes || 0) + targetAutoLikes;
 
+            // แก้ไขปัญหายอดไลค์เด้งกลับหลังรีเฟรช: ใช้ยอด cached_likes ที่บันทึกไว้ใน DB เป็นหลัก
             let cachedLikes = post.cached_likes || 0;
             if (!cachedLikes || cachedLikes === 0) {
                 cachedLikes = Math.floor(finalTotalTarget * 0.40);
                 if (cachedLikes === 0 && finalTotalTarget > 0) cachedLikes = 1;
+                // บันทึกค่าตั้งต้นลง DB ทันที
+                supabaseClient.from('s_link_posts').update({ cached_likes: cachedLikes }).eq('id', post.id).then();
             }
-            if (cachedLikes > finalTotalTarget) cachedLikes = finalTotalTarget;
 
-            // คำนวณยอดคอมเมนต์ที่ทุกคนจะเห็นเท่ากัน (รวมคอมเมนต์จริง + ตัวเลขจำลองจากกระแสความนิยม)
-            let cachedComments = post.cached_comments || 0;
-            const targetCommentCount = (realCommentCount || 0) + Math.floor(targetAutoLikes * 0.15);
-            if (cachedComments < targetCommentCount) {
-                cachedComments = targetCommentCount;
-                if (post.user_id === currentUserId) {
-                    supabaseClient.from('s_link_posts').update({ cached_comments: cachedComments }).eq('id', post.id).then();
-                }
+            // คอมเมนต์: แสดงผลตามจำนวนคอมเมนต์จริงที่มีการพิมพ์เข้ามาเท่านั้น (ไม่มีการบวกเลขลอยๆ)
+            let cachedComments = realCommentCount || 0;
+            if (post.cached_comments !== cachedComments) {
+                supabaseClient.from('s_link_posts').update({ cached_comments: cachedComments }).eq('id', post.id).then();
             }
 
             const { data: likesCheck } = await supabaseClient.from('s_link_likes').select('*').eq('post_id', post.id).eq('user_id', currentUserId).limit(1);
@@ -455,7 +453,7 @@
                 ${post.image_url ? `<div class="w-full bg-black flex justify-center items-center rounded-2xl overflow-hidden"><img src="${post.image_url}" class="w-full h-auto object-contain"></div>` : ''}
                 
                 <div class="flex items-center justify-between pt-2 border-t border-brand-100 text-xs">
-                    <button id="like-btn-${post.id}" onclick="toggleLike('${post.id}', ${post.user_id === currentUserId})" class="flex items-center space-x-1 font-bold ${isLiked ? 'text-red-500' : 'text-gray-500'} hover:text-red-500 transition">
+                    <button id="like-btn-${post.id}" onclick="toggleLike('${post.id}')" class="flex items-center space-x-1 font-bold ${isLiked ? 'text-red-500' : 'text-gray-500'} hover:text-red-500 transition">
                         <span id="like-icon-${post.id}">${isLiked ? '❤️' : '🤍'}</span>
                         <span id="like-count-${post.id}">${cachedLikes.toLocaleString('en-US')}</span> &nbsp;Likes
                     </button>
@@ -465,7 +463,7 @@
                 </div>
             `;
             container.appendChild(card);
-            startSlowStreamingLikes(post.id, finalTotalTarget, totalFanBase, cachedLikes, post.user_id === currentUserId);
+            startSlowStreamingLikes(post.id, finalTotalTarget + 5000, totalFanBase, cachedLikes);
         }
 
         function hashCode(str) {
@@ -477,7 +475,7 @@
             return hash;
         }
 
-        function startSlowStreamingLikes(postId, targetLikes, fanBaseCount, initialCached, isOwner) {
+        function startSlowStreamingLikes(postId, targetLikes, fanBaseCount, initialCached) {
             if (activeLikeIntervals[postId]) {
                 clearInterval(activeLikeIntervals[postId]);
                 delete activeLikeIntervals[postId];
@@ -487,8 +485,9 @@
             if (!spanEl) return;
 
             let currentLikes = initialCached;
-            if (currentLikes > targetLikes) currentLikes = targetLikes;
             spanEl.innerText = currentLikes.toLocaleString('en-US');
+
+            let updateCounter = 0;
 
             activeLikeIntervals[postId] = setInterval(async () => {
                 const currentSpan = document.getElementById(`like-count-${postId}`);
@@ -498,27 +497,24 @@
                     return;
                 }
 
-                if (currentLikes < targetLikes) {
-                    const remaining = targetLikes - currentLikes;
-                    let increment = Math.floor(Math.random() * 5) + 1;
-                    if (fanBaseCount >= 10000) increment = Math.floor(Math.random() * 30) + 5;
-                    
-                    if (increment > remaining) increment = remaining;
+                const remaining = targetLikes - currentLikes;
+                let increment = Math.floor(Math.random() * 3) + 1;
+                if (fanBaseCount >= 10000) increment = Math.floor(Math.random() * 15) + 3;
+                if (increment > remaining) increment = remaining > 0 ? remaining : 1;
 
-                    currentLikes += increment;
-                    currentSpan.innerText = currentLikes.toLocaleString('en-US');
+                currentLikes += increment;
+                currentSpan.innerText = currentLikes.toLocaleString('en-US');
 
-                    if (isOwner) {
-                        await supabaseClient.from('s_link_posts').update({ cached_likes: currentLikes }).eq('id', postId);
-                    }
-                } else {
-                    clearInterval(activeLikeIntervals[postId]);
-                    delete activeLikeIntervals[postId];
+                updateCounter++;
+                // บันทึกยอดไลค์ปัจจุบันลงฐานข้อมูลทุกๆ 5 วินาที เพื่อให้รีเฟรชแล้วยอดไหลต่อจากจุดล่าสุดเสมอ
+                if (updateCounter >= 3) {
+                    updateCounter = 0;
+                    await supabaseClient.from('s_link_posts').update({ cached_likes: currentLikes }).eq('id', postId);
                 }
             }, 1500);
         }
 
-        async function toggleLike(postId, isOwner) {
+        async function toggleLike(postId) {
             const { data: existing } = await supabaseClient.from('s_link_likes').select('*').eq('post_id', postId).eq('user_id', currentUserId).limit(1);
             
             const iconEl = document.getElementById(`like-icon-${postId}`);
@@ -541,9 +537,7 @@
             }
             
             spanEl.innerText = currentVal.toLocaleString('en-US');
-            if (isOwner) {
-                await supabaseClient.from('s_link_posts').update({ cached_likes: currentVal }).eq('id', postId);
-            }
+            await supabaseClient.from('s_link_posts').update({ cached_likes: currentVal }).eq('id', postId);
         }
 
         async function searchUsers() {
@@ -728,7 +722,6 @@
             showModal("ลบสำเร็จ", "ลบโพสต์ของคุณเรียบร้อยแล้ว", "🗑️");
         }
 
-        // แชทหลักและการแสดงผลแชทกลุ่ม
         async function loadChatList() {
             const container = document.getElementById('chat-list-container');
             container.innerHTML = '<p class="text-center text-xs text-gray-400 py-4">กำลังโหลดรายชื่อแชท...</p>';
@@ -809,7 +802,6 @@
 
             container.innerHTML = `
                 <div class="bg-white/95 backdrop-blur-md rounded-3xl border border-brand-200 shadow-sm flex flex-col h-[90vh] w-full overflow-hidden">
-                    <!-- แถบนานวนอนด้านบน (Header) -->
                     <div class="p-4 border-b border-brand-100 flex items-center justify-between bg-white/80">
                         <div class="flex items-center space-x-3">
                             <button onclick="switchSLinkTab('chat')" class="text-xs font-bold text-brand-600 hover:text-brand-800 transition">◀ กลับหน้าแชท</button>
@@ -817,7 +809,6 @@
                             <h4 class="font-extrabold text-sm text-brand-900">${targetName}</h4>
                         </div>
                         
-                        <!-- กลุ่มปุ่มขวาแนวตั้ง (เชิญเพื่อนบน / ลบกลุ่มล่าง) -->
                         <div class="flex flex-col space-y-1 items-end">
                             ${isGroup ? `
                                 <button onclick="openInviteModal('${groupId}')" class="bg-brand-600 text-white text-[10px] font-bold px-3 py-1 rounded-xl shadow-xs hover:bg-brand-700 transition">➕ เชิญเพื่อน</button>
@@ -830,10 +821,8 @@
                         </div>
                     </div>
 
-                    <!-- กล่องแสดงแชท -->
                     <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4 bg-brand-50/30"></div>
 
-                    <!-- กล่องพิมพ์ข้อความ -->
                     <div class="p-3 border-t border-brand-100 flex space-x-2 bg-white">
                         <input type="text" id="chat-msg-input" placeholder="พิมพ์ข้อความ..." class="flex-1 px-4 py-3 rounded-2xl border border-brand-200 text-xs bg-white shadow-inner focus:outline-none focus:border-brand-500">
                         <button onclick="sendChatMessage()" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-3 rounded-2xl text-xs font-bold transition shadow-sm">ส่ง</button>
@@ -917,7 +906,6 @@
             loadChatMessages();
         }
 
-        // ป๊อปอัพยืนยันการลบกลุ่ม
         function confirmDeleteGroup(groupId) {
             pendingDeleteGroupId = groupId;
             const modal = document.getElementById('confirm-delete-group-modal');
@@ -1230,7 +1218,7 @@
                 modal.classList.add('hidden'); 
                 activeModalPostId = null;
                 activeModalPostOwnerId = null;
-                if (activeModalPostId) loadFeedPosts(); 
+                loadFeedPosts(); 
             }, 200);
         }
 
@@ -1292,30 +1280,27 @@
 
             await supabaseClient.from('s_link_comments').insert([{ post_id: activeModalPostId, user_id: currentUserId, comment: text }]);
             
-            // อัปเดตยอด cached_comments ให้เพิ่มขึ้น 1 ทันที เพื่อให้ทุกคนเห็นตรงกัน
-            const { data: postData } = await supabaseClient.from('s_link_posts').select('cached_comments').eq('id', activeModalPostId).single();
-            const newCommentCount = (postData?.cached_comments || 0) + 1;
-            await supabaseClient.from('s_link_posts').update({ cached_comments: newCommentCount }).eq('id', activeModalPostId);
+            // ดึงจำนวนคอมเมนต์จริงทั้งหมดมาอัปเดต
+            const { count: realCommentCount } = await supabaseClient.from('s_link_comments').select('*', { count: 'exact', head: true }).eq('post_id', activeModalPostId);
+            await supabaseClient.from('s_link_posts').update({ cached_comments: realCommentCount || 0 }).eq('id', activeModalPostId);
 
             input.value = '';
             await loadModalComments();
             
-            // อัปเดตหน้าจอหลักทันที
             const countEl = document.getElementById(`comment-count-${activeModalPostId}`);
-            if (countEl) countEl.innerText = newCommentCount.toLocaleString('en-US');
+            if (countEl) countEl.innerText = (realCommentCount || 0).toLocaleString('en-US');
         }
 
         async function deleteModalComment(commentId) {
             await supabaseClient.from('s_link_comments').delete().eq('id', commentId);
             
-            const { data: postData } = await supabaseClient.from('s_link_posts').select('cached_comments').eq('id', activeModalPostId).single();
-            const newCommentCount = Math.max(0, (postData?.cached_comments || 1) - 1);
-            await supabaseClient.from('s_link_posts').update({ cached_comments: newCommentCount }).eq('id', activeModalPostId);
+            const { count: realCommentCount } = await supabaseClient.from('s_link_comments').select('*', { count: 'exact', head: true }).eq('post_id', activeModalPostId);
+            await supabaseClient.from('s_link_posts').update({ cached_comments: realCommentCount || 0 }).eq('id', activeModalPostId);
 
             await loadModalComments();
             
             const countEl = document.getElementById(`comment-count-${activeModalPostId}`);
-            if (countEl) countEl.innerText = newCommentCount.toLocaleString('en-US');
+            if (countEl) countEl.innerText = (realCommentCount || 0).toLocaleString('en-US');
         }
 
         async function toggleCommentLike(commentId) {
